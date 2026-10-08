@@ -61,3 +61,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-08 (Round 10)
 - Fase 3 aberta: combat.ts (counters/dano/armadura), defenses.ts (muralhas/portões/torres/keep), warriors.ts (meshes militares) — 3 builders em paralelo. Integração de dano + ordens de ataque na próxima.
+
+## Estado 2026-10-08 (Round 11)
+- Redeploy prod: d199a6ad (main c/ Fase 2 integrada); https://throneward.pages.dev/ 200.
+- Fase 3 builders (combat/defenses/warriors) em voo, nada landed ainda.
