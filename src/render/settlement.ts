@@ -81,10 +81,27 @@ export class Settlement {
   private rebuild(node: THREE.Group, kind: BuildingKind, built: boolean, progress: number): void {
     for (const child of [...node.children]) node.remove(child);
 
-    const visual = built ? this.cloneBuilt(kind) : constructionMesh(kind, progress);
+    // DÍVIDA: siegeworkshop/university/wonder ainda não têm mesh própria — caixa reserva.
+    let visual: THREE.Group;
+    try {
+      visual = built ? this.cloneBuilt(kind) : constructionMesh(kind, progress);
+    } catch {
+      visual = this.fallbackBox();
+    }
     node.add(visual);
 
     node.userData = { kind, built, progress } satisfies NodeState;
+  }
+
+  private fallbackBox(): THREE.Group {
+    const g = new THREE.Group();
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(3, 2, 3),
+      new THREE.MeshStandardMaterial({ color: 0x8a6b4a, roughness: 1 })
+    );
+    m.position.y = 1;
+    g.add(m);
+    return g;
   }
 
   private cloneBuilt(kind: BuildingKind): THREE.Group {

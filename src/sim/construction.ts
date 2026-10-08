@@ -25,12 +25,15 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   miningcamp: { cost: { wood: 50 }, hp: 800, buildTime: 20 },
   mill: { cost: { wood: 50 }, hp: 800, buildTime: 20 },
   barracks: { cost: { wood: 150 }, hp: 1500, buildTime: 30 },
-  archerRange: { cost: { wood: 150 }, hp: 1500, buildTime: 30 },
+  archerrange: { cost: { wood: 150 }, hp: 1500, buildTime: 30 },
   stable: { cost: { wood: 150 }, hp: 1500, buildTime: 30 },
   blacksmith: { cost: { wood: 150 }, hp: 1500, buildTime: 30 },
   market: { cost: { wood: 100 }, hp: 1200, buildTime: 25 },
   monastery: { cost: { wood: 150, gold: 150 }, hp: 1500, buildTime: 40 },
   outpost: { cost: { wood: 100, stone: 50 }, hp: 1000, buildTime: 25 },
+  siegeworkshop: { cost: { wood: 200 }, hp: 1500, buildTime: 45 }, // THR v0 VERIFICAR
+  university: { cost: { wood: 200 }, hp: 1500, buildTime: 40 }, // THR v0 VERIFICAR
+  wonder: { cost: { food: 1000, wood: 1000, gold: 1000, stone: 1000 }, hp: 5000, buildTime: 180 }, // THR v0 VERIFICAR
 };
 
 export const QUEUE_MAX = 5;
