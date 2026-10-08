@@ -1,7 +1,12 @@
 # PROGRESS — Throneward
 
 ## Fase atual
-Fase 0 — Pesquisa e SPEC (rodada 1/5 CONCLUÍDA; parcial honesto — reconverge nas Fases 3/7)
+Fase 1 — Terreno/câmera/seleção/pathfinding (rodada 1/5, builders em paralelo)
+- terreno: `src/sim/terrain.ts` + `tests/terrain.test.ts`
+- pathfinding: `src/sim/pathfind.ts` + `tests/pathfind.test.ts`
+- câmera: `src/render/camera.ts` + `tests/camera.test.ts`
+- seleção: `src/sim/selection.ts` + `tests/selection.test.ts`
+Modelo fixo: opencodex/Merge/anthropic-claude-haiku-5-5. Integração (world render + __game + e2e) na próxima rodada após os 4 landarem.
 
 ## Feito
 - 2026-10-08 R1: 3 pesquisadores Haiku 5.5 entregaram parcial (buildings 203l, economy 199l, hud 240l) com VERIFICAR; units sem entrega → THR v0 pelo Lead (58l).
