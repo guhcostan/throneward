@@ -151,3 +151,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Perf medido: sim 0.007ms/tick (200u); render fill-bound no SwiftShader (57fps@640, 36fps@1280 sem extras, 22fps c/ 200u) — folga enorme em GPU real; instancing mantido (cápsulas) por 60fps.
 - 298 unit, CI verde 37859886183. Deploy prod.
 - Falta: guerreiros na cena (dívida), B-001, relatório final Pronto.
+
+## Estado 2026-10-08 (Round 28)
+- Todas as vitórias cobertas e2e (sacred/wonder/annihilation/landmarks-destruição): 22/22 e2e, 299 unit, tag v8, CI verde 37861191664. Deploy prod.
+- Bots cercam (oficina+aríetes), finalizam prédios, teto de aldeões por dificuldade, ram liberado era III, teto pop SPEC aplicado.
+- Bot vs bot: vencedor em ~11min (landmarks), determinístico. Próximo: relatório final + polimento restante (guerreiros na cena, B-001).
