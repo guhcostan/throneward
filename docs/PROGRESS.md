@@ -115,3 +115,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-08 (Round 20b)
 - Fase 6 landed: relics (9t), sacred (8t), trade (11t) → 277 unit, tsc 0.
 - Incidente: race lead×builder em sacred.ts (builder reescreveu o arquivo após meu fix) — resolvido adotando a API final pública `capturers`. Lição: após mensagem de conclusão de builder, reinspecionar arquivos antes de editar.
+
+## Estado 2026-10-08 (Round 21)
+- CI VERDE (37848559647 e 37848949346: build+e2e success). E2E determinístico via hook `tick` (suite 11/11 em ~12s; antes 4min+flakes).
+- E2E isolado: porta 5216 própria, reuseExistingServer:false, guarda de identidade Throneward+versão no boot.
+- Tag v6. B-001 segue aberto. Próximo: Fase 7 (bots).
