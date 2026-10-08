@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import { Sim } from './sim/sim';
+import { Game } from './sim/game';
 import { generateTerrain, type TerrainData } from './sim/terrain';
 import { createCamera, attachCamera, cameraPos, type CameraState } from './render/camera';
 import { heightColor, forestInstances, minimapImage } from './render/world';
+import { Settlement } from './render/settlement';
+import type { BuildingKind } from './render/buildings';
 
 // Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
 
@@ -125,28 +128,93 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
   treeMesh.instanceMatrix.needsUpdate = true;
   scene.add(treeMesh);
 
-  const sim = new Sim({ seed: SEED, tickRate: 60 });
+  const game = new Game(SEED, 2);
+  const sim = game.sim;
   for (const s of terrain.spawns) {
     sim.spawnUnit('villager', 0, s.x - terrain.size / 2, s.y - terrain.size / 2);
   }
   sim.spawnUnit('scout', 0, 0, 0);
+  // Initial town center for player 0 (built instantly — test/scenario setup).
+  const tcId = game.orderBuild(0, 'towncenter', terrain.spawns[0].x - terrain.size / 2, terrain.spawns[0].y - terrain.size / 2);
+  const tc = game.buildings.get(tcId);
+  if (tc) {
+    tc.progress = 1;
+    tc.built = true;
+    tc.hp = tc.maxHp;
+  }
+
+  const settlement = new Settlement();
+  scene.add(settlement.group);
+  const asKind = (t: string): BuildingKind => t as BuildingKind;
+  const syncSettlement = (): void => {
+    for (const b of game.buildings.values()) {
+      settlement.upsert({
+        id: b.id,
+        kind: asKind(b.type),
+        x: b.x,
+        z: b.y,
+        groundY: groundH(terrain, b.x, b.y),
+        progress: b.progress,
+        built: b.built
+      });
+    }
+  };
 
   drawMinimapBase(terrain);
   updateMinimap(terrain, sim, cam);
 
   // window.__game — reading state + sending commands (used by tests).
+  type Cmd =
+    | { type: 'move'; unitIds: number[]; x: number; y: number; queue?: boolean }
+    | { type: 'gather'; unitId: number; kind: string; x: number; y: number; dx: number; dy: number }
+    | { type: 'build'; player: number; building: string; x: number; y: number }
+    | { type: 'addbuilder'; buildingId: number; unitId: number }
+    | { type: 'train'; buildingId: number; unit: string; time: number }
+    | { type: 'instant'; buildingId: number };
   (window as unknown as { __game: unknown }).__game = {
     sim,
+    game,
     terrain: { seed: SEED, size: MAP_SIZE, spawns: terrain.spawns },
-    getState: () => JSON.parse(JSON.stringify(sim.state)),
-    command: (cmd: { type: string; unitIds?: number[]; x?: number; y?: number; queue?: boolean }) => {
+    getState: () => JSON.parse(JSON.stringify({
+      tick: sim.state.tick,
+      units: sim.state.units,
+      resources: sim.state.resources,
+      pop: game.popUsed(),
+      buildings: [...game.buildings.values()],
+      gatherers: [...game.gatherers.values()]
+    })),
+    command: (cmd: Cmd) => {
       if (cmd.type === 'move' && cmd.unitIds && cmd.x !== undefined && cmd.y !== undefined) {
         sim.commandMove(cmd.unitIds, cmd.x, cmd.y, !!cmd.queue);
         return { ok: true };
       }
+      if (cmd.type === 'gather') {
+        const ok = game.assignGather(cmd.unitId, { kind: cmd.kind, x: cmd.x, y: cmd.y }, { x: cmd.dx, y: cmd.dy });
+        return { ok };
+      }
+      if (cmd.type === 'build') {
+        const id = game.orderBuild(cmd.player, cmd.building, cmd.x, cmd.y);
+        return id === -1 ? { ok: false, error: 'no funds' } : { ok: true, id };
+      }
+      if (cmd.type === 'addbuilder') {
+        game.addBuilder(cmd.buildingId, cmd.unitId);
+        return { ok: true };
+      }
+      if (cmd.type === 'train') {
+        return { ok: game.trainUnit(cmd.buildingId, cmd.unit, cmd.time) };
+      }
+      if (cmd.type === 'instant') {
+        // TEST HOOK: complete a building instantly (e2e only).
+        const b = game.buildings.get(cmd.buildingId);
+        if (!b) return { ok: false, error: 'unknown building' };
+        b.progress = 1;
+        b.built = true;
+        b.hp = b.maxHp;
+        return { ok: true };
+      }
       return { ok: false, error: 'unknown command' };
     },
-    version: '0.1-fase1'
+    version: '0.2-fase2'
   };
 
   const unitMesh = new THREE.InstancedMesh(
@@ -165,7 +233,7 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
 
   let frameN = 0;
   function frame(): void {
-    sim.tickOnce(1 / 60);
+    game.tick(1 / 60);
     sim.state.units.forEach((u, i) => {
       dummy.position.set(u.x, groundH(terrain, u.x, u.y) + 0.7, u.y);
       dummy.updateMatrix();
@@ -175,7 +243,10 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     unitMesh.count = sim.state.units.length;
     unitMesh.instanceMatrix.needsUpdate = true;
     if (unitMesh.instanceColor) unitMesh.instanceColor.needsUpdate = true;
-    if (frameN++ % 15 === 0) updateMinimap(terrain, sim, cam);
+    if (frameN++ % 15 === 0) {
+      updateMinimap(terrain, sim, cam);
+      syncSettlement();
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
