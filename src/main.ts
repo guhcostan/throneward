@@ -279,7 +279,7 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
       }
       return { ok: false, error: 'unknown command' };
     },
-    version: '0.2-fase2'
+    version: '0.3-hud-vivo'
   };
 
   const unitMesh = new THREE.InstancedMesh(
