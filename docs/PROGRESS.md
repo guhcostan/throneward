@@ -100,3 +100,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-08 (Round 17)
 - Deploy v4: 87cd927c; prod 200. Fase 5 aberta (gallia.ts + teste, builder em voo).
+
+## Estado 2026-10-08 (Round 18)
+- Fase 5 + tag v5: Gallia (10t) integrada (ageChoices gallia, stable 1.2x c/ teste); charge do cavaleiro pendente (exige perseguição — Fase 7).
+- main.ts segue civ genérica (landmarks Albion/Gallia custam além do stock inicial — e2e usa genéricos; tuning de economia depois).
+- 249 unit, tsc 0. Próximo: Fase 6 (relíquias/sagrados/comércio/vitória).
