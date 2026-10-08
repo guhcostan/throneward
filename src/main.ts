@@ -6,6 +6,7 @@ import { createCamera, attachCamera, cameraPos, type CameraState } from './rende
 import { heightColor, forestInstances, minimapImage } from './render/world';
 import { Settlement } from './render/settlement';
 import type { BuildingKind } from './render/buildings';
+import { popCap } from './sim/construction';
 
 // Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
 
@@ -310,6 +311,19 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     if (frameN++ % 15 === 0) {
       updateMinimap(terrain, sim, cam);
       syncSettlement();
+      // HUD vivo: lê do MESMO estado que o __game expõe.
+      const stock = sim.state.resources[0];
+      const setText = (id: string, v: string): void => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = v;
+      };
+      if (stock) {
+        setText('res-food', `Food ${Math.floor(stock.food)}`);
+        setText('res-wood', `Wood ${Math.floor(stock.wood)}`);
+        setText('res-gold', `Gold ${Math.floor(stock.gold)}`);
+        setText('res-stone', `Stone ${Math.floor(stock.stone)}`);
+        setText('res-pop', `Pop ${game.popUsed()[0] ?? 0}/${popCap([...game.buildings.values()])}`);
+      }
       const ageEl = document.getElementById('age');
       if (ageEl) ageEl.textContent = 'Age ' + (['I', 'II', 'III', 'IV'][game.ages[0]?.age - 1] ?? 'I');
     }

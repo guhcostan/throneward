@@ -125,6 +125,8 @@ export function cameraPos(s: CameraState): CameraPos {
 export interface AttachOptions {
   /** Meia-largura do mapa (clamp de tx/tz). Padrão 50. */
   half?: number;
+  /** Botões do mouse que disparam pan (default [0, 1] = esq/meio; passe [1] p/ liberar o esq p/ seleção). */
+  panButtons?: number[];
 }
 
 /**
@@ -146,6 +148,7 @@ export function attachCamera(
   opts: AttachOptions = {},
 ): () => void {
   const half = opts.half ?? DEFAULT_HALF_SIZE;
+  const panButtons = opts.panButtons ?? [0, 1];
   const win: EventTarget = el.ownerDocument?.defaultView ?? el;
 
   let mode: 'pan' | 'rotate' | null = null;
@@ -160,7 +163,7 @@ export function attachCamera(
 
   const onDown = (ev: Event): void => {
     const e = ev as MouseEvent;
-    if (e.button === 0 || e.button === 1) mode = 'pan';
+    if (panButtons.includes(e.button)) mode = 'pan';
     else if (e.button === 2) mode = 'rotate';
     else return;
     lastX = e.clientX;
