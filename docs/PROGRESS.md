@@ -108,3 +108,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-08 (Round 19)
 - Fase 6 aberta: relics.ts, sacred.ts, trade.ts (+vitória) — 3 builders em paralelo.
+
+## Estado 2026-10-08 (Round 20)
+- Deploy v5 em prod (Fase 6 builders em voo).
