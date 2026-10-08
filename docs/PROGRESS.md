@@ -105,3 +105,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Fase 5 + tag v5: Gallia (10t) integrada (ageChoices gallia, stable 1.2x c/ teste); charge do cavaleiro pendente (exige perseguição — Fase 7).
 - main.ts segue civ genérica (landmarks Albion/Gallia custam além do stock inicial — e2e usa genéricos; tuning de economia depois).
 - 249 unit, tsc 0. Próximo: Fase 6 (relíquias/sagrados/comércio/vitória).
+
+## Estado 2026-10-08 (Round 19)
+- Fase 6 aberta: relics.ts, sacred.ts, trade.ts (+vitória) — 3 builders em paralelo.
