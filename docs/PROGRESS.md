@@ -65,3 +65,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-08 (Round 11)
 - Redeploy prod: d199a6ad (main c/ Fase 2 integrada); https://throneward.pages.dev/ 200.
 - Fase 3 builders (combat/defenses/warriors) em voo, nada landed ainda.
+
+## Estado 2026-10-08 (Round 11)
+- Fase 3 landed: combat (13t), defenses (13t), warriors (36t) → 202 unit em 14 arquivos, tsc 0, commit 28ddaad.
+- Próximo: integrar dano no Game (attack orders, flechas das torres, morte), guerreiros na cena, e2e combate + tag v2.
