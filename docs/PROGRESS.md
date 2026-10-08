@@ -78,3 +78,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - 203 unit, tsc 0, commit 7f5f8ad.
 - Dívida Fase 3: guerreiros ainda cápsulas na cena (warriorMesh pronto, falta trocar); muralhas sem render; ambos vão ao polimento/integração visual.
 - Próximo: Fase 4 (idades, landmarks, tecnologias).
+
+## Estado 2026-10-08 (Round 13)
+- Fase 4 aberta: ages.ts (motor eras/landmarks), techs.ts (ferraria/universidade), civs/albion.ts (dados Albion) — 3 builders em paralelo.
