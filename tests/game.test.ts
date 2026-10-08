@@ -63,6 +63,7 @@ describe('Game: coleta', () => {
 describe('Game: treino', () => {
   it('trainUnit só funciona em prédio pronto e produz no rally após o tempo', () => {
     const g = new Game(3, 1);
+    g.ages[0].age = 2; // isola mecânica de treino (barracks/spearman exigem era II)
     const id = g.orderBuild(0, 'barracks', 20, 20);
     expect(g.trainUnit(id, 'spearman', 5)).toBe(false);
 
@@ -89,6 +90,7 @@ describe('Game: treino', () => {
 
   it('popUsed conta unidades vivas e fila, sem contar prédio em construção', () => {
     const g = new Game(4, 1);
+    g.ages[0].age = 2; // isola mecânica de pop (barracks/spearman exigem era II)
     const id = g.orderBuild(0, 'barracks', 20, 20);
     expect(g.popUsed()).toEqual([0]);
     const builder = g.sim.spawnUnit('villager', 0, 18, 20);
@@ -110,6 +112,25 @@ describe('Game: fundos', () => {
   });
 });
 
+describe('Game: eras', () => {
+  it('era bloqueia prédio/unidade/tech de era superior', () => {
+    const g = new Game(6, 1);
+    expect(g.orderBuild(0, 'barracks', 0, 0)).toBe(-1); // era II na era I
+    expect(g.researchTech(0, 'melee-atk-1')).toBe(false); // tech de era II na era I
+  });
+
+  it('advanceAge paga landmark e avança com construtores', () => {
+    const g = new Game(7, 1);
+    const v = g.sim.spawnUnit('villager', 0, 0, 0);
+    expect(g.advanceAge(0, 0)).toBe(true);
+    expect(g.ages[0].advancing).toBe(true);
+    g.addAgeBuilder(0, v.id);
+    for (let i = 0; i < 6000 && g.ages[0].age === 1; i++) g.tick(DT);
+    expect(g.ages[0].age).toBe(2);
+    g.stocks[0].stock.wood = 500; // landmark consumiu o stock inicial
+    expect(g.orderBuild(0, 'barracks', 0, 0)).toBeGreaterThan(0);
+  });
+});
 describe('Game: determinismo', () => {
   function script(g: Game): void {
     const v = g.sim.spawnUnit('villager', 0, 0, 0);

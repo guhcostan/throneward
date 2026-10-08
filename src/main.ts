@@ -172,7 +172,10 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     | { type: 'train'; buildingId: number; unit: string; time: number }
     | { type: 'instant'; buildingId: number }
     | { type: 'attack'; unitId: number; targetId: number }
-    | { type: 'spawn'; unit: string; player: number; x: number; y: number };
+    | { type: 'spawn'; unit: string; player: number; x: number; y: number }
+    | { type: 'advance'; player: number; slot: 0 | 1 }
+    | { type: 'agebuilder'; player: number; unitId: number }
+    | { type: 'research'; player: number; id: string };
   (window as unknown as { __game: unknown }).__game = {
     sim,
     game,
@@ -182,6 +185,8 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
       units: sim.state.units,
       resources: sim.state.resources,
       pop: game.popUsed(),
+      ages: game.ages.map((a) => ({ age: a.age, advancing: a.advancing, progress: a.progress })),
+      researched: game.techs.map((t) => [...t.researched]),
       buildings: [...game.buildings.values()],
       gatherers: [...game.gatherers.values()]
     })),
@@ -222,6 +227,16 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
         const u = sim.spawnUnit(cmd.unit, cmd.player, cmd.x, cmd.y);
         return { ok: true, id: u.id };
       }
+      if (cmd.type === 'advance') {
+        return { ok: game.advanceAge(cmd.player, cmd.slot) };
+      }
+      if (cmd.type === 'agebuilder') {
+        game.addAgeBuilder(cmd.player, cmd.unitId);
+        return { ok: true };
+      }
+      if (cmd.type === 'research') {
+        return { ok: game.researchTech(cmd.player, cmd.id) };
+      }
       return { ok: false, error: 'unknown command' };
     },
     version: '0.2-fase2'
@@ -256,6 +271,8 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     if (frameN++ % 15 === 0) {
       updateMinimap(terrain, sim, cam);
       syncSettlement();
+      const ageEl = document.getElementById('age');
+      if (ageEl) ageEl.textContent = 'Age ' + (['I', 'II', 'III', 'IV'][game.ages[0]?.age - 1] ?? 'I');
     }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
