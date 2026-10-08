@@ -24,7 +24,11 @@ export type BuildingKind =
   | 'blacksmith'
   | 'market'
   | 'monastery'
-  | 'outpost';
+  | 'outpost'
+  | 'siegeworkshop'
+  | 'university'
+  | 'wonder'
+  | 'landmark';
 
 type V3 = readonly [number, number, number];
 
@@ -45,6 +49,8 @@ const PALETTE = {
   white: 0xe6dccb,
   hay: 0xc9a84a,
   forge: 0xb0502a,
+  gold: 0xc9a227,
+  glass: 0x2f5f9e,
 } as const;
 
 const GABLE_ANGLE = 0.5;
@@ -300,6 +306,64 @@ const BUILDERS: Record<BuildingKind, Builder> = {
     box(g, [0.35, 0.4, 0.35], PALETTE.stoneDark, [-0.55, 4.2, -0.55]);
     box(g, [0.2, 0.5, 0.1], PALETTE.woodDark, [0, 1.1, 0.8]);
   },
+
+  siegeworkshop(g) {
+    // Galpão aberto (sem paredes): quatro postes, telhado e bancada com roda.
+    box(g, [0.15, 2.0, 0.15], PALETTE.wood, [-1.6, 1.0, -1.6]);
+    box(g, [0.15, 2.0, 0.15], PALETTE.wood, [1.6, 1.0, -1.6]);
+    box(g, [0.15, 2.0, 0.15], PALETTE.wood, [-1.6, 1.0, 1.6]);
+    box(g, [0.15, 2.0, 0.15], PALETTE.wood, [1.6, 1.0, 1.6]);
+    gableX(g, 3.6, 3.6, 2.4, PALETTE.roof);
+    // Bancada de trabalho sob o telhado, lado do fundo.
+    box(g, [2.4, 0.2, 0.7], PALETTE.woodDark, [0, 0.9, -1.1]);
+    box(g, [0.15, 0.9, 0.15], PALETTE.woodDark, [-1.0, 0.45, -1.1]);
+    box(g, [0.15, 0.9, 0.15], PALETTE.woodDark, [1.0, 0.45, -1.1]);
+    // Roda de cerco encostada ao lado direito: aro (cilindro deitado) e raios.
+    cyl(g, 0.7, 0.7, 0.12, 12, PALETTE.woodDark, [1.0, 0.8, 0.5], [0, 0, Math.PI / 2]);
+    box(g, [0.08, 1.3, 0.08], PALETTE.wood, [1.0, 0.8, 0.5]);
+    box(g, [0.08, 0.08, 1.3], PALETTE.wood, [1.0, 0.8, 0.5]);
+  },
+
+  university(g) {
+    // Salão de pedra com telhado, torre lateral e vitral azul na fachada.
+    box(g, [3.6, 2.4, 2.6], PALETTE.stone, [-0.3, 1.2, 0]);
+    gableX(g, 3.8, 2.6, 2.9, PALETTE.roof, [-0.3, 0]);
+    // Torre de pedra com ameia cônica.
+    cyl(g, 0.8, 0.9, 4.2, 8, PALETTE.stoneDark, [1.7, 2.1, 1.5]);
+    cone(g, 1.0, 1.4, 8, PALETTE.roof, [1.7, 4.9, 1.5]);
+    // Vitral (plano azul) na torre e portal no salão.
+    box(g, [0.3, 0.9, 0.06], PALETTE.glass, [1.7, 2.6, 2.33]);
+    box(g, [0.9, 1.1, 0.06], PALETTE.glass, [-0.3, 1.5, 1.33]);
+    box(g, [0.6, 1.0, 0.1], PALETTE.woodDark, [-0.3, 0.5, 1.33]);
+  },
+
+  wonder(g) {
+    // Templo escalonado (ziggurate) com pináculo dourado.
+    box(g, [7, 1, 7], PALETTE.stone, [0, 0.5, 0]);
+    box(g, [5.4, 1, 5.4], PALETTE.stoneDark, [0, 1.5, 0]);
+    box(g, [3.8, 1, 3.8], PALETTE.stone, [0, 2.5, 0]);
+    box(g, [2.2, 0.8, 2.2], PALETTE.stoneDark, [0, 3.4, 0]);
+    // Santuário e pináculo dourado.
+    box(g, [1.2, 0.8, 1.2], PALETTE.plaster, [0, 4.0, 0]);
+    cyl(g, 0.12, 0.3, 0.6, 8, PALETTE.gold, [0, 4.7, 0]);
+    cone(g, 0.45, 1.4, 8, PALETTE.gold, [0, 5.7, 0]);
+    // Escadaria frontal.
+    box(g, [1.6, 0.5, 0.6], PALETTE.stoneDark, [0, 0.25, 3.8]);
+  },
+
+  landmark(g) {
+    // Pequeno keep de pedra com ameias e estandarte tingível (userData.cloak).
+    box(g, [1.6, 2.4, 1.6], PALETTE.stone, [0, 1.2, 0]);
+    box(g, [0.35, 0.3, 0.35], PALETTE.stoneDark, [0.6, 2.55, 0.6]);
+    box(g, [0.35, 0.3, 0.35], PALETTE.stoneDark, [-0.6, 2.55, -0.6]);
+    box(g, [0.35, 0.3, 0.35], PALETTE.stoneDark, [0.6, 2.55, -0.6]);
+    box(g, [0.35, 0.3, 0.35], PALETTE.stoneDark, [-0.6, 2.55, 0.6]);
+    box(g, [0.5, 0.9, 0.1], PALETTE.woodDark, [0, 0.45, 0.85]);
+    // Mastro e estandarte.
+    cyl(g, 0.04, 0.04, 1.6, 5, PALETTE.woodDark, [0, 3.4, 0]);
+    const banner = box(g, [0.6, 0.4, 0.03], PALETTE.flag, [0.3, 3.9, 0]);
+    banner.userData.cloak = true;
+  },
 };
 
 const FOOTPRINTS: Record<BuildingKind, { w: number; h: number }> = {
@@ -316,6 +380,10 @@ const FOOTPRINTS: Record<BuildingKind, { w: number; h: number }> = {
   market: { w: 4, h: 4 },
   monastery: { w: 4, h: 4 },
   outpost: { w: 3, h: 3 },
+  siegeworkshop: { w: 4, h: 4 },
+  university: { w: 5, h: 5 },
+  wonder: { w: 8, h: 8 },
+  landmark: { w: 4, h: 4 },
 };
 
 /** Malha 3D do prédio, pronta para ser posicionada no mundo. */

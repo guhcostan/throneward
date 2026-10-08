@@ -9,6 +9,7 @@ import type { BuildingKind } from './render/buildings';
 import { popCap, getDef } from './sim/construction';
 import { canBuild } from './sim/ages';
 import { Bot, type WorldSites } from './sim/bot';
+import { sfx, toggleMute, isMuted } from './ui/audio';
 import { clickSelect, boxSelect, doubleClickSelect, ControlGroups } from './sim/selection';
 
 // Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
@@ -495,6 +496,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
               const vils = sim.state.units.filter((u) => selected.includes(u.id) && u.type === 'villager').slice(0, 5);
               for (const v of vils) game.addAgeBuilder(0, v.id);
               setHint(`Era avançando: ${lm.name}`);
+              sfx.advance();
             }
             choosingAge = false;
             refreshGrid();
@@ -594,6 +596,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       for (const m of military) game.orderAttack(m.id, foe.id);
       const rest = mine.filter((u) => !military.includes(u));
       if (rest.length > 0) sim.commandMove(rest.map((u) => u.id), wx, wz, additive);
+      sfx.attack();
       return;
     }
     const villagers = mine.filter((u) => u.type === 'villager');
@@ -610,6 +613,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       }
     }
     sim.commandMove(mine.map((u) => u.id), wx, wz, additive);
+    sfx.order();
   };
 
   const el = renderer.domElement;
@@ -647,8 +651,10 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
             if (u && u.type === 'villager') game.addBuilder(id, uid);
           }
           setHint(`${placeMode.building} em construção`);
+          sfx.build();
         } else {
           setHint('Sem fundos ou era insuficiente');
+          sfx.error();
         }
         placeMode = null;
         refreshSelection();
@@ -695,6 +701,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     }
     refreshSelection();
     refreshGrid();
+    if (selected.length > 0 || selectedB.length > 0) sfx.select();
   });
   el.addEventListener('contextmenu', (e: MouseEvent) => {
     e.preventDefault();
@@ -761,6 +768,16 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     }
   });
 
+  const muteBtn = document.getElementById('btn-mute');
+  const paintMute = (): void => {
+    if (muteBtn) muteBtn.textContent = isMuted() ? '🔇' : '🔊';
+  };
+  muteBtn?.addEventListener('click', () => {
+    toggleMute();
+    paintMute();
+  });
+  paintMute();
+
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -788,6 +805,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       refreshGrid();
       if (game.winner && !bannerShown.v) {
         bannerShown.v = true;
+        sfx.victory();
         const banner = document.getElementById('banner');
         const card = document.getElementById('banner-card');
         if (banner && card) {
