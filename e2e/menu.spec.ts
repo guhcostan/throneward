@@ -33,17 +33,22 @@ test('select a villager with the mouse and order a move', async ({ page }) => {
   await page.mouse.click(target.px.x, target.px.y);
   await expect(page.locator('#selection')).toContainText('villager', { timeout: 5000 });
 
-  const before = await page.evaluate(() => {
-    const g = (window as unknown as { __game: { getState: () => { units: { id: number; x: number; y: number }[] } } }).__game;
-    return g.getState().units[0];
+  // A unidade selecionada é a da frente no raio (raycast), não necessariamente a projetada.
+  const selId = await page.evaluate(() => {
+    const g = (window as unknown as { __game: { debug: { ui: () => { selected: number[] } } } }).__game;
+    return g.debug.ui().selected[0];
   });
+  const posOf = (id: number): Promise<{ x: number; y: number }> =>
+    page.evaluate(([i]) => {
+      const g = (window as unknown as { __game: { getState: () => { units: { id: number; x: number; y: number }[] } } }).__game;
+      const u = g.getState().units.find((x) => x.id === i)!;
+      return { x: u.x, y: u.y };
+    }, [id] as [number]);
+  const before = await posOf(selId);
   // Right-click elsewhere on the ground to order a move.
   await page.mouse.click(target.px.x + 120, target.px.y + 60, { button: 'right' });
   await page.waitForTimeout(1200);
-  const after = await page.evaluate(() => {
-    const g = (window as unknown as { __game: { getState: () => { units: { id: number; x: number; y: number }[] } } }).__game;
-    return g.getState().units[0];
-  });
+  const after = await posOf(selId);
   expect(after.x !== before.x || after.y !== before.y).toBe(true);
   expect(errors).toEqual([]);
 });

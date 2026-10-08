@@ -10,6 +10,12 @@ import { popCap, getDef } from './sim/construction';
 import { canBuild } from './sim/ages';
 import { Bot, type WorldSites } from './sim/bot';
 import { sfx, toggleMute, isMuted } from './ui/audio';
+import { warriorMesh, setPlayerColor, type WarriorKind } from './render/warriors';
+
+const WARRIOR_KINDS = new Set<string>([
+  'spearman', 'archer', 'longbow', 'crossbow', 'manatarms',
+  'knight', 'scout', 'monk', 'ram', 'mangonel'
+]);
 import { clickSelect, boxSelect, doubleClickSelect, ControlGroups } from './sim/selection';
 
 // Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
@@ -375,13 +381,71 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     version: '0.3-hud-vivo'
   };
 
-  const unitMesh = new THREE.InstancedMesh(
-    new THREE.CapsuleGeometry(0.3, 0.8, 4, 8),
-    new THREE.MeshStandardMaterial({ color: 0xffffff }),
-    512
-  );
-  scene.add(unitMesh);
-  const unitColor = new THREE.Color();
+  // Camada de unidades: um Group por unidade (templates por tipo+jogador).
+  // Guerreiros usam warriorMesh procedural; demais, cápsula tingida.
+  const unitLayer = new THREE.Group();
+  scene.add(unitLayer);
+  const unitTemplates = new Map<string, THREE.Group>();
+  const unitNodes = new Map<number, THREE.Group>();
+
+  const templateFor = (type: string, player: number): THREE.Group => {
+    const key = `${type}:${player % PLAYER_COLORS.length}`;
+    let t = unitTemplates.get(key);
+    if (!t) {
+      t = new THREE.Group();
+      if (WARRIOR_KINDS.has(type)) {
+        const w = warriorMesh(type as WarriorKind);
+        setPlayerColor(w, PLAYER_COLORS[player % PLAYER_COLORS.length]);
+        t.add(w);
+      } else {
+        const m = new THREE.Mesh(
+          new THREE.CapsuleGeometry(0.3, 0.8, 4, 8),
+          new THREE.MeshStandardMaterial({ color: PLAYER_COLORS[player % PLAYER_COLORS.length], roughness: 0.8 })
+        );
+        m.position.y = 0.7;
+        t.add(m);
+      }
+      unitTemplates.set(key, t);
+    }
+    return t;
+  };
+
+  const syncUnits = (): void => {
+    const live = new Set<number>();
+    for (const u of sim.state.units) {
+      live.add(u.id);
+      let node = unitNodes.get(u.id);
+      if (!node) {
+        node = templateFor(u.type, u.player).clone(true);
+        node.userData.unitId = u.id;
+        unitNodes.set(u.id, node);
+        unitLayer.add(node);
+      }
+      node.position.set(u.x, groundH(terrain, u.x, u.y), u.y);
+    }
+    for (const id of [...unitNodes.keys()]) {
+      if (!live.has(id)) {
+        const n = unitNodes.get(id);
+        if (n) unitLayer.remove(n);
+        unitNodes.delete(id);
+      }
+    }
+  };
+
+  const pickUnit = (cx: number, cy: number): number[] => {
+    mouseV.set((cx / window.innerWidth) * 2 - 1, -(cy / window.innerHeight) * 2 + 1);
+    raycaster.setFromCamera(mouseV, camera);
+    const hits = raycaster.intersectObjects(unitLayer.children, true);
+    for (const h of hits) {
+      let o: THREE.Object3D | null = h.object;
+      while (o && o.userData.unitId === undefined) o = o.parent;
+      if (o) {
+        const u = sim.state.units.find((v) => v.id === o.userData.unitId);
+        if (u && u.player === 0) return [u.id];
+      }
+    }
+    return [];
+  };
 
   // ---- Seleção e ordens (mouse; jogador = player 0) ----
   const raycaster = new THREE.Raycaster();
@@ -681,7 +745,9 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         refreshGrid();
         return;
       }
-      const hit = clickSelect(selView(), 0, g.x, g.z);
+      // Raycast nas malhas primeiro (preciso); raio de fallback depois.
+      const rayHit = pickUnit(e.clientX, e.clientY);
+      const hit = rayHit.length > 0 ? rayHit : clickSelect(selView(), 0, g.x, g.z);
       if (isDouble && hit.length > 0) {
         const u = sim.state.units.find((v) => v.id === hit[0]);
         if (u) selected = doubleClickSelect(selView(), 0, u.type, g.x, g.z);
@@ -810,15 +876,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     game.tick(1 / 60);
     for (const b of bots) b.update(1 / 60);
     // Vitória (aniquilação/sagrados/maravilha/landmarks) calculada no Game.tick.
-    sim.state.units.forEach((u, i) => {
-      dummy.position.set(u.x, groundH(terrain, u.x, u.y) + 0.7, u.y);
-      dummy.updateMatrix();
-      unitMesh.setMatrixAt(i, dummy.matrix);
-      unitMesh.setColorAt(i, unitColor.setHex(PLAYER_COLORS[u.player % PLAYER_COLORS.length]));
-    });
-    unitMesh.count = sim.state.units.length;
-    unitMesh.instanceMatrix.needsUpdate = true;
-    if (unitMesh.instanceColor) unitMesh.instanceColor.needsUpdate = true;
+    syncUnits();
     if (frameN++ % 15 === 0) {
       updateMinimap(terrain, sim, cam);
       syncSettlement();
