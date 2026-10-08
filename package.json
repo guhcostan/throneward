@@ -4,6 +4,9 @@
   "version": "0.0.1",
   "description": "Throneward — Realms of Crown & Hearth. Browser RTS with original art/audio, mechanics mirroring AoE IV. Original work only.",
   "type": "module",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
