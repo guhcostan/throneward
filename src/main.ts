@@ -143,6 +143,10 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     tc.hp = tc.maxHp;
   }
 
+  // Fase 6: relíquias e sagrados do terreno.
+  terrain.relics.forEach((r, i) => game.addRelic(5000 + i, r.x - terrain.size / 2, r.y - terrain.size / 2));
+  terrain.sacred.forEach((s, i) => game.addSacredSite(i + 1, s.x - terrain.size / 2, s.y - terrain.size / 2));
+
   const settlement = new Settlement();
   scene.add(settlement.group);
   const asKind = (t: string): BuildingKind => t as BuildingKind;
@@ -175,7 +179,10 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     | { type: 'spawn'; unit: string; player: number; x: number; y: number }
     | { type: 'advance'; player: number; slot: 0 | 1 }
     | { type: 'agebuilder'; player: number; unitId: number }
-    | { type: 'research'; player: number; id: string };
+    | { type: 'research'; player: number; id: string }
+    | { type: 'relic'; op: 'pickup' | 'drop' | 'garrison'; unitId: number; relicId: number; x?: number; y?: number; buildingId?: number }
+    | { type: 'route'; unitId: number; from: number; to: number }
+    | { type: 'grant'; player: number; resource: 'food' | 'wood' | 'gold' | 'stone'; amount: number };
   (window as unknown as { __game: unknown }).__game = {
     sim,
     game,
@@ -187,6 +194,13 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
       pop: game.popUsed(),
       ages: game.ages.map((a) => ({ age: a.age, advancing: a.advancing, progress: a.progress })),
       researched: game.techs.map((t) => [...t.researched]),
+      winner: game.winner,
+      relics: [...game.relics.relics.values()],
+      sacred: {
+        sites: [...game.sacred.sites.values()],
+        timer: game.sacred.timer,
+        winner: game.sacred.winner
+      },
       buildings: [...game.buildings.values()],
       gatherers: [...game.gatherers.values()]
     })),
@@ -236,6 +250,22 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
       }
       if (cmd.type === 'research') {
         return { ok: game.researchTech(cmd.player, cmd.id) };
+      }
+      if (cmd.type === 'relic') {
+        if (cmd.op === 'pickup') return { ok: game.relicPickup(cmd.unitId, cmd.relicId) };
+        if (cmd.op === 'drop') return { ok: game.relicDrop(cmd.relicId, cmd.x ?? 0, cmd.y ?? 0) };
+        return { ok: game.relicGarrison(cmd.unitId, cmd.relicId, cmd.buildingId ?? -1) };
+      }
+      if (cmd.type === 'route') {
+        const id = game.assignRoute(cmd.unitId, cmd.from, cmd.to);
+        return id === -1 ? { ok: false } : { ok: true, id };
+      }
+      if (cmd.type === 'grant') {
+        // TEST HOOK: concede recursos (e2e only).
+        const stock = game.stocks[cmd.player];
+        if (!stock) return { ok: false };
+        stock.stock[cmd.resource] += cmd.amount;
+        return { ok: true };
       }
       return { ok: false, error: 'unknown command' };
     },

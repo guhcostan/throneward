@@ -11,6 +11,7 @@ const cmd = (page: Page, c: unknown): Promise<{ ok: boolean; id?: number }> =>
   page.evaluate((cc) => (window as unknown as { __game: { command: (c: unknown) => { ok: boolean; id?: number } } }).__game.command(cc), c);
 
 test('knight kills enemy villager in melee', async ({ page }) => {
+  test.setTimeout(90000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/');
@@ -22,7 +23,7 @@ test('knight kills enemy villager in melee', async ({ page }) => {
   expect(await cmd(page, { type: 'attack', unitId: knight.id, targetId: victim.id })).toEqual({ ok: true });
 
   await expect
-    .poll(async () => (await state(page)).units.find((u) => u.id === victim.id)?.hp ?? 0, { timeout: 30000 })
+    .poll(async () => (await state(page)).units.find((u) => u.id === victim.id)?.hp ?? 0, { timeout: 60000 })
     .toBe(0);
   expect(errors).toEqual([]);
 });

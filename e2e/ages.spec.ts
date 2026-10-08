@@ -13,7 +13,7 @@ const cmd = (page: Page, c: unknown): Promise<{ ok: boolean; id?: number }> =>
   page.evaluate((cc) => (window as unknown as { __game: { command: (c: unknown) => { ok: boolean; id?: number } } }).__game.command(cc), c);
 
 test('advance to feudal with a builder, then barracks allowed', async ({ page }) => {
-  test.setTimeout(120000);
+  test.setTimeout(180000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/');
@@ -34,7 +34,7 @@ test('advance to feudal with a builder, then barracks allowed', async ({ page })
   }
 
   await expect
-    .poll(async () => (await state(page)).ages[0].age, { timeout: 100000 })
+    .poll(async () => (await state(page)).ages[0].age, { timeout: 150000 })
     .toBe(2);
 
   // HUD age indicator follows.

@@ -56,6 +56,9 @@ import {
   galliaStableMult,
   type GalLandmark,
 } from './civs/gallia';
+import { RELIC_RATE, RelicState, drop as relicDrop, garrison as relicGarrison, pickup as relicPickup } from './relics';
+import { SacredState, sacredTick } from './sacred';
+import { checkVictory, goldFor, traderTick, tripTime, type Trader } from './trade';
 
 // Landmarks genéricos (civs sem pacote próprio). THR v0 VERIFICAR.
 const GENERIC_LANDMARKS: Record<2 | 3 | 4, [LandmarkDef, LandmarkDef]> = {
@@ -124,6 +127,14 @@ export class Game {
   techs: TechState[] = [];
   civs: string[] = [];
   private ageBuilders = new Map<number, Set<number>>();
+  // Fase 6: relíquias, sagrados, comércio, maravilha e vencedor.
+  relics = new RelicState();
+  sacred = new SacredState();
+  traders = new Map<number, Trader>();
+  private traderDistance = new Map<number, number>();
+  private nextTraderSeq = 0;
+  private wonderTimers = new Map<number, number>();
+  winner: { player: number; reason: string } | null = null;
 
   constructor(seed: number, players: number, civs?: string[]) {
     this.sim = new Sim({ seed, tickRate: SIM_TICK_RATE });
@@ -260,8 +271,7 @@ export class Game {
     return true;
   }
 
-  private castleStructures(): PlacedStructure[] {
-    const out: PlacedStructure[] = [];
+  private castleStructures(): PlacedStructure[] {    const out: PlacedStructure[] = [];
     for (const b of this.buildings.values()) {
       if (!b.built) continue;
       if (b.type === 'towncenter') out.push({ kind: 'town_center', x: b.x, y: b.y });
@@ -307,6 +317,52 @@ export class Game {
     const id = 3000 + this.nextWallSeq;
     this.nextWallSeq++;
     this.walls.set(id, { id, player, kind, x1, y1, x2, y2, hp: def.hp, maxHp: def.hp, gate });
+    return id;
+  }
+
+  // ---- Fase 6: relíquias ----
+
+  addRelic(id: number, x: number, y: number): void {
+    this.relics.add(id, x, y);
+  }
+
+  relicPickup(unitId: number, relicId: number): boolean {
+    const u = this.sim.state.units.find((v) => v.id === unitId);
+    if (!u) return false;
+    return relicPickup(this.relics, relicId, unitId, u.type);
+  }
+
+  relicDrop(relicId: number, x: number, y: number): boolean {
+    return relicDrop(this.relics, relicId, x, y);
+  }
+
+  relicGarrison(unitId: number, relicId: number, buildingId: number): boolean {
+    const r = this.relics.relics.get(relicId);
+    const b = this.buildings.get(buildingId);
+    if (!r || !b || r.carrier !== unitId) return false;
+    return relicGarrison(this.relics, relicId, buildingId, b.type, ['monastery']);
+  }
+
+  // ---- Fase 6: sagrados ----
+
+  addSacredSite(id: number, x: number, y: number): void {
+    this.sacred.add(id, x, y);
+  }
+
+  // ---- Fase 6: comércio ----
+
+  // Rota entre dois mercados (prédios 'market' construídos). Retorna id do trader ou -1.
+  assignRoute(unitId: number, fromMarketId: number, toMarketId: number): number {
+    const u = this.sim.state.units.find((v) => v.id === unitId);
+    const a = this.buildings.get(fromMarketId);
+    const b = this.buildings.get(toMarketId);
+    if (!u || u.type !== 'trader' || !a || !b) return -1;
+    if (a.type !== 'market' || b.type !== 'market' || !a.built || !b.built) return -1;
+    const distance = Math.hypot(b.x - a.x, b.y - a.y);
+    const id = 4000 + this.nextTraderSeq;
+    this.nextTraderSeq++;
+    this.traders.set(id, { id, player: u.player, fromMarket: fromMarketId, toMarket: toMarketId, progress: 0, tripTime: tripTime(distance) });
+    this.traderDistance.set(id, distance);
     return id;
   }
 
@@ -401,6 +457,61 @@ export class Game {
         const stats = victim ? UNIT_COMBAT[victim.type] : undefined;
         const dmg = dealDamage(def.damage * damageArrowCount(tw), stats?.ranged ?? 0);
         if (victim) victim.hp -= dmg;
+      }
+    }
+
+    // Fase 6: renda de relíquias (por jogador dono do mosteiro).
+    for (const r of this.relics.relics.values()) {
+      if (r.garrisoned === null) continue;
+      const b = this.buildings.get(r.garrisoned);
+      if (!b) continue;
+      addStock(this.stocks[b.player], 'gold', RELIC_RATE * dt);
+    }
+
+    // Fase 6: presença nos sagrados (raio 4 tiles, THR v0) e contagem.
+    const presence = new Map<number, { player: number; religious: boolean }[]>();
+    for (const site of this.sacred.sites.values()) {
+      const here: { player: number; religious: boolean }[] = [];
+      for (const u of this.sim.state.units) {
+        if (u.hp <= 0) continue;
+        if (Math.hypot(u.x - site.x, u.y - site.y) <= 4) {
+          here.push({ player: u.player, religious: u.type === 'monk' });
+        }
+      }
+      presence.set(site.id, here);
+    }
+    sacredTick(this.sacred, dt, presence);
+
+    // Fase 6: rotas de comércio.
+    for (const t of this.traders.values()) {
+      if (traderTick(t, dt)) {
+        addStock(this.stocks[t.player], 'gold', goldFor(this.traderDistance.get(t.id) ?? 0));
+      }
+    }
+
+    // Fase 6: maravilha sustentada + veredito.
+    if (!this.winner) {
+      const wonderByPlayer = new Map<number, { built: boolean; timer: number }>();
+      for (let p = 0; p < this.stocks.length; p++) wonderByPlayer.set(p, { built: false, timer: 0 });
+      for (const b of this.buildings.values()) {
+        if (b.type !== 'wonder' || !b.built) continue;
+        const t = (this.wonderTimers.get(b.id) ?? 0) + dt;
+        this.wonderTimers.set(b.id, t);
+        const cur = wonderByPlayer.get(b.player);
+        if (cur) wonderByPlayer.set(b.player, { built: true, timer: Math.max(cur.timer, t) });
+      }
+      // DÍVIDA: vitória por landmarks aguarda entidades de landmark com HP.
+      // Até lá, todos contam como vivos (vitória por essa via desabilitada).
+      const landmarksAlive = new Map<number, boolean>();
+      for (let p = 0; p < this.stocks.length; p++) landmarksAlive.set(p, true);
+      const res = checkVictory({
+        players: this.stocks.map((_, p) => p),
+        landmarksAlive,
+        sacredWinner: this.sacred.winner,
+        wonder: wonderByPlayer
+      });
+      if (res.winner !== null && res.reason !== null) {
+        this.winner = { player: res.winner, reason: res.reason };
       }
     }
 
