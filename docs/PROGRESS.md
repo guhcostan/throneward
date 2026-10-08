@@ -140,3 +140,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Tag v7: bots ativos + cerco a prédios + landmarks físicos + eliminação/aniquilação no Game.
 - E2E 17/17 (siege: TC destruído + landmark criado/destruído), unit 286/286, CI verde 37852830464. Deploy prod.
 - Próximo: Fase 8 (menu skirmish + HUD completo) e polimento.
+
+## Estado 2026-10-08 (Round 26)
+- Fase 8 completa: skirmish (civ/0–3 bots/dificuldade/4 vitórias) + HUD lateral (ociosos/placar/objetivos/produção global).
+- Caça ao flake do ui.spec: causa raiz = #hint comia cliques de posicionamento (pointer-events:none) + grade reconstruída a cada 15 frames (assinatura) + teste com retry inválido e asserts de estado (placeMode). E2E 19/19 (3x estável), unit 286, CI verde 37859411169. Deploy prod.
+- Próximo: Fase 9 (áudio, 60fps/200u, polimento visual) + relatório final.
