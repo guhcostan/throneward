@@ -88,3 +88,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-08 (Round 14b)
 - Albion landed (12t; longbow range 7 pelo SPEC). techs.ts landed SEM teste (builder sem entrega final — cobrar teste ou escrever na integração). ages.ts pendente.
 - 215 unit, tsc 0, commit 5253884.
+
+## Estado 2026-10-08 (Round 15)
+- Fase 4 landed: ages (15t, cumulativo, valida par da próxima idade, 0 builders=nulo), techs + meu teste (5t), Albion (12t) → 235 unit, tsc 0, commit d9b4ecd.
+- Próximo: integrar idades/techs/Albion no Game + __game + e2e era + tag v4. Depois Fase 5 (Gallia).
