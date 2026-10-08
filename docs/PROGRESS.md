@@ -81,3 +81,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-08 (Round 13)
 - Fase 4 aberta: ages.ts (motor eras/landmarks), techs.ts (ferraria/universidade), civs/albion.ts (dados Albion) — 3 builders em paralelo.
+
+## Estado 2026-10-08 (Round 14)
+- Redeploy prod: d0108051 (v2 c/ combate); 200. Fase 4 builders em voo.
