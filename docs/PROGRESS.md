@@ -111,3 +111,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-08 (Round 20)
 - Deploy v5 em prod (Fase 6 builders em voo).
+
+## Estado 2026-10-08 (Round 20b)
+- Fase 6 landed: relics (9t), sacred (8t), trade (11t) → 277 unit, tsc 0.
+- Incidente: race lead×builder em sacred.ts (builder reescreveu o arquivo após meu fix) — resolvido adotando a API final pública `capturers`. Lição: após mensagem de conclusão de builder, reinspecionar arquivos antes de editar.
