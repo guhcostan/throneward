@@ -8,6 +8,7 @@ import { Settlement, buildingFootprint } from './render/settlement';
 import type { BuildingKind } from './render/buildings';
 import { popCap, getDef } from './sim/construction';
 import { canBuild } from './sim/ages';
+import { Bot, type WorldSites } from './sim/bot';
 import { clickSelect, boxSelect, doubleClickSelect, ControlGroups } from './sim/selection';
 
 // Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
@@ -158,7 +159,30 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   };
   // Initial town centers (custo 0, prontos — setup de cenário).
   completeInstant(game.orderBuild(0, 'towncenter', W(home.x, home.y).x, W(home.x, home.y).y));
-  completeInstant(game.orderBuild(1, 'towncenter', W(foe.x, foe.y).x, W(foe.x, foe.y).y));
+  const foeTC = W(foe.x, foe.y);
+  completeInstant(game.orderBuild(1, 'towncenter', foeTC.x, foeTC.y));
+
+  // Bot inimigo (Fase 7, medium): sites a partir do terreno.
+  const woods: { kind: string; x: number; y: number }[] = [];
+  for (let dy = -10; dy <= 10 && woods.length < 3; dy++) {
+    for (let dx = -10; dx <= 10 && woods.length < 3; dx++) {
+      const tx = foe.x + dx;
+      const ty = foe.y + dy;
+      if (tx < 0 || ty < 0 || tx >= terrain.size || ty >= terrain.size) continue;
+      if (terrain.forest[ty * terrain.size + tx] === 1) {
+        woods.push({ kind: 'wood', x: tx - terrain.size / 2, y: ty - terrain.size / 2 });
+      }
+    }
+  }
+  const tw = (n: { x: number; y: number }): { x: number; y: number } => ({ x: n.x - terrain.size / 2, y: n.y - terrain.size / 2 });
+  const foeSites: WorldSites = {
+    food: terrain.berries.slice(0, 3).map((n) => ({ kind: 'berry', ...tw(n) })),
+    wood: woods,
+    gold: terrain.gold.slice(0, 2).map((n) => ({ kind: 'gold', ...tw(n) })),
+    stone: terrain.stone.slice(0, 1).map((n) => ({ kind: 'stone', ...tw(n) })),
+    dropoff: foeTC
+  };
+  const foeBot = new Bot(game, 1, 'medium', foeSites);
 
   // Fase 6: relíquias e sagrados do terreno.
   terrain.relics.forEach((r, i) => game.addRelic(5000 + i, r.x - terrain.size / 2, r.y - terrain.size / 2));
@@ -288,10 +312,13 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
       }
       if (cmd.type === 'tick') {
         // TEST HOOK: avança a simulação N segundos de uma vez (e2e only).
-        // Testa o pipeline sem espera de parede; durações são cobertas por testes unitários.
+        // Espelha o frame (bot + sim); durações são cobertas por testes unitários.
         const seconds = Math.min(1200, Math.max(0, Number(cmd.seconds ?? 0)));
         const steps = Math.round(seconds * 60);
-        for (let i = 0; i < steps; i++) game.tick(1 / 60);
+        for (let i = 0; i < steps; i++) {
+          foeBot.update(1 / 60);
+          game.tick(1 / 60);
+        }
         return { ok: true, ticks: steps };
       }
       return { ok: false, error: 'unknown command' };
@@ -653,6 +680,7 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   const bannerShown = { v: false };
   function frame(): void {
     game.tick(1 / 60);
+    foeBot.update(1 / 60);
     // Aniquilação: base inimiga destruída (unidades + prédios prontos do player 1).
     if (!game.winner && sim.state.tick > 120) {
       const foeAlive =
