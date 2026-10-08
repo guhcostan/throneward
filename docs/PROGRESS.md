@@ -97,3 +97,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Fase 4 integrada + tag v4: ages/techs/Albion no Game (gates, desconto fazenda, castleBonus, mults), __game advance/agebuilder/research, HUD idade segue era, e2e era II 9/9 (58s c/ 5 builders; rAF headless ~60%).
 - 237 unit, tsc 0, commit 389cb7a.
 - Próximo: Fase 5 (Gallia) + deploy v4.
+
+## Estado 2026-10-08 (Round 17)
+- Deploy v4: 87cd927c; prod 200. Fase 5 aberta (gallia.ts + teste, builder em voo).
