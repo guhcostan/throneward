@@ -84,3 +84,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-08 (Round 14)
 - Redeploy prod: d0108051 (v2 c/ combate); 200. Fase 4 builders em voo.
+
+## Estado 2026-10-08 (Round 14b)
+- Albion landed (12t; longbow range 7 pelo SPEC). techs.ts landed SEM teste (builder sem entrega final — cobrar teste ou escrever na integração). ages.ts pendente.
+- 215 unit, tsc 0, commit 5253884.
