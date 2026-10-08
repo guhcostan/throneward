@@ -36,29 +36,53 @@ function buildGround(t: TerrainData): THREE.Mesh {
   return mesh;
 }
 
-function drawMinimap(t: TerrainData): void {
-  const canvas = document.getElementById('minimap') as HTMLCanvasElement | null;
-  if (!canvas) return;
+function groundH(t: TerrainData, x: number, z: number): number {
+  const tx = Math.max(0, Math.min(t.size - 1, Math.round(x + t.size / 2)));
+  const ty = Math.max(0, Math.min(t.size - 1, Math.round(z + t.size / 2)));
+  return t.height[ty * t.size + tx] * 2;
+}
+
+// Base minimap (terrain) rendered once; live dots + camera rect each refresh.
+let baseMap: HTMLCanvasElement | null = null;
+
+function drawMinimapBase(t: TerrainData): void {
   const px = 128;
   const img = minimapImage(t, px);
-  const off = document.createElement('canvas');
-  off.width = px;
-  off.height = px;
-  const ctx = off.getContext('2d');
+  baseMap = document.createElement('canvas');
+  baseMap.width = px;
+  baseMap.height = px;
+  const ctx = baseMap.getContext('2d');
   if (!ctx) return;
   const data = new ImageData(px, px);
   data.data.set(img);
   ctx.putImageData(data, 0, 0);
+}
+
+const PLAYER_COLORS = [0x2f6df6, 0xd83a2a, 0x2fae5f, 0xe0a020];
+
+function updateMinimap(t: TerrainData, sim: Sim, cam: CameraState): void {
+  const canvas = document.getElementById('minimap') as HTMLCanvasElement | null;
+  if (!canvas || !baseMap) return;
   const mctx = canvas.getContext('2d');
   if (!mctx) return;
   mctx.imageSmoothingEnabled = false;
   mctx.clearRect(0, 0, canvas.width, canvas.height);
-  mctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+  mctx.drawImage(baseMap, 0, 0, canvas.width, canvas.height);
+  const sx = canvas.width / t.size;
+  // Units.
+  for (const u of sim.state.units) {
+    mctx.fillStyle = '#' + PLAYER_COLORS[u.player % PLAYER_COLORS.length].toString(16).padStart(6, '0');
+    mctx.fillRect((u.x + t.size / 2) * sx - 1, (u.y + t.size / 2) * sx - 1, 3, 3);
+  }
+  // Camera viewport rect (approx by dist).
+  const half = cam.dist * 0.45;
+  mctx.strokeStyle = '#ffffff';
+  mctx.strokeRect((cam.tx + t.size / 2 - half) * sx, (cam.tz + t.size / 2 - half) * sx, half * 2 * sx, half * 2 * sx);
 }
 
 export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraState } {
   const container = document.getElementById('app')!;
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   container.appendChild(renderer.domElement);
 
@@ -101,13 +125,14 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
   treeMesh.instanceMatrix.needsUpdate = true;
   scene.add(treeMesh);
 
-  drawMinimap(terrain);
-
   const sim = new Sim({ seed: SEED, tickRate: 60 });
   for (const s of terrain.spawns) {
     sim.spawnUnit('villager', 0, s.x - terrain.size / 2, s.y - terrain.size / 2);
   }
   sim.spawnUnit('scout', 0, 0, 0);
+
+  drawMinimapBase(terrain);
+  updateMinimap(terrain, sim, cam);
 
   // window.__game — reading state + sending commands (used by tests).
   (window as unknown as { __game: unknown }).__game = {
@@ -126,20 +151,31 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
 
   const unitMesh = new THREE.InstancedMesh(
     new THREE.CapsuleGeometry(0.3, 0.8, 4, 8),
-    new THREE.MeshStandardMaterial({ color: 0xd8c48a }),
+    new THREE.MeshStandardMaterial({ color: 0xffffff }),
     512
   );
   scene.add(unitMesh);
+  const unitColor = new THREE.Color();
 
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  let frameN = 0;
   function frame(): void {
     sim.tickOnce(1 / 60);
     sim.state.units.forEach((u, i) => {
-      dummy.position.set(u.x, 1.0, u.y);
+      dummy.position.set(u.x, groundH(terrain, u.x, u.y) + 0.7, u.y);
       dummy.updateMatrix();
       unitMesh.setMatrixAt(i, dummy.matrix);
+      unitMesh.setColorAt(i, unitColor.setHex(PLAYER_COLORS[u.player % PLAYER_COLORS.length]));
     });
     unitMesh.count = sim.state.units.length;
     unitMesh.instanceMatrix.needsUpdate = true;
+    if (unitMesh.instanceColor) unitMesh.instanceColor.needsUpdate = true;
+    if (frameN++ % 15 === 0) updateMinimap(terrain, sim, cam);
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }

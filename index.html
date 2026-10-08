@@ -11,7 +11,7 @@
     #minimap{position:fixed;left:12px;bottom:12px;width:220px;height:220px;background:#14161a;border:1px solid #444;z-index:5}
     #cmd-grid{position:fixed;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(4,56px);gap:6px;z-index:5}
     #cmd-grid button{height:56px}
-    #selection{position:fixed;left:244px;bottom:12px;max-width:40vw;background:rgba(10,10,12,.72);padding:8px;z-index:5}
+    #selection{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;max-width:40vw;background:rgba(10,10,12,.72);padding:8px;z-index:5;text-align:center}
   </style>
 </head>
 <body>
@@ -24,7 +24,10 @@
   </div>
   <canvas id="minimap" width="220" height="220"></canvas>
   <div id="selection">No selection</div>
-  <div id="cmd-grid"></div>
+  <div id="cmd-grid">
+    <button disabled title="Move (M)">Move</button><button disabled title="Attack (A)">Atk</button><button disabled title="Build (B)">Build</button><button disabled title="Gather (G)">Gather</button>
+    <button disabled title="Patrol (P)">Patrol</button><button disabled title="Stop (S)">Stop</button><button disabled title="Repair (R)">Repair</button><button disabled title="Cancel (Esc)">Cancel</button>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
