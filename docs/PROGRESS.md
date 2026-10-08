@@ -130,3 +130,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Loop jogável completo pela UI: construir (paleta+posicionamento), treinar (TC/quartel/arqueria), era (2 landmarks+auto-designar), prédios selecionáveis, Esc/botão direito cancela.
 - E2E 14/14 (ui.spec: select→build→train→advance por mouse em 3.9s), CI verde 37851107579. Deploy prod.
 - Próximo: Fase 7 (bots) + polimento (guerreiros na cena, muros render).
+
+## Estado 2026-10-08 (Round 24)
+- Fase 7 jogável: bot medium no inimigo (economia/build-order/eras/counters/ataque/defesa/sagrados), 3 dificuldades, hook tick espelha frame.
+- E2E 15/15, unit 282/282, CI verde 37851779751. Deploy prod (inimigo vivo).
+- Falta Fase 7 plena: bot vs bot com vencedor (exige ataque a prédios + landmarks com HP) + dificuldades easy/hard em jogo + menu skirmish (Fase 8).
