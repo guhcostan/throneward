@@ -44,12 +44,22 @@ test('full loop by mouse: select, build, train, advance', async ({ page }) => {
     .toBe(true);
 
   // 3. Select the Town Center by clicking it and train a villager.
+  // Tenta offsets até acertar (unidades têm prioridade no clique).
   st = await snap(page);
   const tc = st.buildings.find((b) => b.type === 'towncenter')!;
-  // Offset do centro: aldeões parados cercam o TC (unidades têm prioridade no clique).
-  const ptc = await proj(page, tc.x + 2.5, tc.y + 2.5);
-  await page.mouse.click(ptc.x, ptc.y);
-  await expect(page.locator('#selection')).toContainText('towncenter', { timeout: 5000 });
+  let tcSelected = false;
+  for (const [ox, oy] of [[2.5, 2.5], [-2.5, 2.5], [2.5, -2.5], [-2.5, -2.5], [0, 3.4]] as [number, number][]) {
+    const p = await proj(page, tc.x + ox, tc.y + oy);
+    await page.mouse.click(p.x, p.y);
+    try {
+      await expect(page.locator('#selection')).toContainText('towncenter', { timeout: 1500 });
+      tcSelected = true;
+      break;
+    } catch {
+      continue;
+    }
+  }
+  expect(tcSelected).toBe(true);
   const nBefore = st.units.length;
   await page.click('[data-act="train-villager"]');
   await cmd(page, { type: 'tick', seconds: 25 });
