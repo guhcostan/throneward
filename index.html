@@ -12,6 +12,15 @@
     #cmd-grid{position:fixed;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(4,56px);gap:6px;z-index:5}
     #cmd-grid button{height:56px}
     #selection{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;max-width:40vw;background:rgba(10,10,12,.72);padding:8px;z-index:5;text-align:center}
+    #menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,8,10,.88);z-index:20}
+    #menu-card{max-width:520px;padding:32px 40px;background:#14161a;border:1px solid #5a5348;text-align:center}
+    #menu-card h1{margin:0 0 4px;font-size:32px;letter-spacing:2px}
+    #menu-card p{color:#b8b2a4}
+    #menu-card button{margin:6px;padding:10px 22px;font-size:15px;cursor:pointer}
+    #help{display:none;text-align:left;font-size:13px;color:#cfc9bb}
+    #banner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,8,10,.6);z-index:15}
+    #banner-card{padding:28px 48px;background:#14161a;border:2px solid #c9a227;font-size:28px}
+    #hint{position:fixed;top:48px;left:50%;transform:translateX(-50%);background:rgba(10,10,12,.8);padding:6px 14px;z-index:6;display:none}
   </style>
 </head>
 <body>
@@ -28,6 +37,21 @@
     <button disabled title="Move (M)">Move</button><button disabled title="Attack (A)">Atk</button><button disabled title="Build (B)">Build</button><button disabled title="Gather (G)">Gather</button>
     <button disabled title="Patrol (P)">Patrol</button><button disabled title="Stop (S)">Stop</button><button disabled title="Repair (R)">Repair</button><button disabled title="Cancel (Esc)">Cancel</button>
   </div>
+  <div id="hint"></div>
+  <div id="banner"><div id="banner-card"></div></div>
+  <div id="menu"><div id="menu-card">
+    <h1>👑 THRONEWARD</h1>
+    <p>Realms of Crown &amp; Hearth — RTS jogável (v0.4)</p>
+    <p>Civilização: <strong>Albion</strong> vs base neutra. Colete, construa, avance de era, treine e vença.</p>
+    <button id="btn-start">Iniciar partida</button>
+    <button id="btn-help">Como jogar</button>
+    <div id="help">
+      <p><b>Esquerdo:</b> selecionar (arrastar = caixa, duplo clique = mesmo tipo). <b>Direito:</b> mover / atacar / coletar. <b>Meio/arrastar ou WASD:</b> câmera. <b>Roda:</b> zoom. <b>Botão direito arrastar:</b> girar.</p>
+      <p><b>Construir:</b> selecione aldeões → Build → clique no terreno. <b>Treinar:</b> selecione o Centro da Cidade → clique na unidade. <b>Era:</b> botão Advance + escolha 1 landmark.</p>
+      <p><b>Vitória:</b> destrua a base inimiga (aniquilação), segure os 3 sagrados ou erga a Maravilha.</p>
+    </div>
+    <p style="font-size:12px">Arte, áudio e nomes 100% originais. Mecânicas espelham o gênero.</p>
+  </div></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@ test('knight kills enemy villager in melee', async ({ page }) => {
   test.setTimeout(90000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   const knight = await cmd(page, { type: 'spawn', unit: 'knight', player: 0, x: 0, y: 0 });
   const victim = await cmd(page, { type: 'spawn', unit: 'villager', player: 1, x: 0.5, y: 0 });
@@ -31,7 +31,7 @@ test('knight kills enemy villager in melee', async ({ page }) => {
 test('friendly attack is refused', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   const before = await state(page);
   const own = before.units.filter((u) => u.player === 0);

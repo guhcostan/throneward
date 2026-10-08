@@ -40,7 +40,7 @@ test('relic garrisoned in monastery trickles gold', async ({ page }) => {
   test.setTimeout(300000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   await advanceTo(page, 3);
 
@@ -66,7 +66,7 @@ test('relic garrisoned in monastery trickles gold', async ({ page }) => {
 test('non-monk cannot pick up relic', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   const before = await state(page);
   const villager = before.units.find((u) => u.type === 'villager');

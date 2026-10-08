@@ -7,6 +7,7 @@ import { heightColor, forestInstances, minimapImage } from './render/world';
 import { Settlement } from './render/settlement';
 import type { BuildingKind } from './render/buildings';
 import { popCap } from './sim/construction';
+import { clickSelect, boxSelect, doubleClickSelect, ControlGroups } from './sim/selection';
 
 // Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
 
@@ -84,7 +85,7 @@ function updateMinimap(t: TerrainData, sim: Sim, cam: CameraState): void {
   mctx.strokeRect((cam.tx + t.size / 2 - half) * sx, (cam.tz + t.size / 2 - half) * sx, half * 2 * sx, half * 2 * sx);
 }
 
-export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraState } {
+export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraState } {
   const container = document.getElementById('app')!;
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -101,7 +102,8 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     camera.lookAt(cam.tx, 0, cam.tz);
   };
   applyCamera();
-  attachCamera(renderer.domElement, () => cam, applyCamera);
+  // Botão esquerdo livre para seleção; pan no botão do meio, rotate no direito.
+  attachCamera(renderer.domElement, () => cam, applyCamera, { panButtons: [1] });
 
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
   light.position.set(20, 30, 10);
@@ -129,20 +131,33 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
   treeMesh.instanceMatrix.needsUpdate = true;
   scene.add(treeMesh);
 
-  const game = new Game(SEED, 2);
+  const game = new Game(SEED, 2, [civ, 'generic']);
   const sim = game.sim;
-  for (const s of terrain.spawns) {
-    sim.spawnUnit('villager', 0, s.x - terrain.size / 2, s.y - terrain.size / 2);
+  const home = terrain.spawns[0];
+  const foe = terrain.spawns[1] ?? { x: terrain.size - 8, y: terrain.size - 8 };
+  const W = (tx: number, ty: number): { x: number; y: number } => ({ x: tx - terrain.size / 2, y: ty - terrain.size / 2 });
+  // Jogador: 6 aldeões + batedor. Inimigo (base neutra passiva): TC + 3 arqueiros + 2 lanceiros.
+  for (let i = 0; i < 6; i++) {
+    const p = W(home.x + (i % 3) - 1, home.y + Math.floor(i / 3) - 1);
+    sim.spawnUnit('villager', 0, p.x, p.y);
   }
   sim.spawnUnit('scout', 0, 0, 0);
-  // Initial town center for player 0 (built instantly — test/scenario setup).
-  const tcId = game.orderBuild(0, 'towncenter', terrain.spawns[0].x - terrain.size / 2, terrain.spawns[0].y - terrain.size / 2);
-  const tc = game.buildings.get(tcId);
-  if (tc) {
-    tc.progress = 1;
-    tc.built = true;
-    tc.hp = tc.maxHp;
-  }
+  const enemyUnits: string[] = ['archer', 'archer', 'archer', 'spearman', 'spearman'];
+  enemyUnits.forEach((t, i) => {
+    const p = W(foe.x + (i % 3) - 1, foe.y + Math.floor(i / 3));
+    sim.spawnUnit(t, 1, p.x, p.y);
+  });
+  const completeInstant = (id: number): void => {
+    const b = game.buildings.get(id);
+    if (b) {
+      b.progress = 1;
+      b.built = true;
+      b.hp = b.maxHp;
+    }
+  };
+  // Initial town centers (custo 0, prontos — setup de cenário).
+  completeInstant(game.orderBuild(0, 'towncenter', W(home.x, home.y).x, W(home.x, home.y).y));
+  completeInstant(game.orderBuild(1, 'towncenter', W(foe.x, foe.y).x, W(foe.x, foe.y).y));
 
   // Fase 6: relíquias e sagrados do terreno.
   terrain.relics.forEach((r, i) => game.addRelic(5000 + i, r.x - terrain.size / 2, r.y - terrain.size / 2));
@@ -188,6 +203,7 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
   (window as unknown as { __game: unknown }).__game = {
     sim,
     game,
+    debug: { project: (x: number, z: number) => project(x, z) },
     terrain: { seed: SEED, size: MAP_SIZE, spawns: terrain.spawns },
     getState: () => JSON.parse(JSON.stringify({
       tick: sim.state.tick,
@@ -290,6 +306,161 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
   scene.add(unitMesh);
   const unitColor = new THREE.Color();
 
+  // ---- Seleção e ordens (mouse; jogador = player 0) ----
+  const raycaster = new THREE.Raycaster();
+  const mouseV = new THREE.Vector2();
+  let selected: number[] = [];
+  const groups = new ControlGroups();
+  let lastClick = { t: 0, x: 0, y: 0 };
+  let dragStart: { x: number; y: number } | null = null;
+  const boxEl = document.createElement('div');
+  boxEl.style.cssText = 'position:fixed;border:1px solid #fff;background:rgba(255,255,255,.12);z-index:7;display:none';
+  document.body.appendChild(boxEl);
+
+  const selView = (): { id: number; player: number; type: string; x: number; y: number }[] =>
+    sim.state.units.filter((u) => u.player === 0).map((u) => ({ id: u.id, player: u.player, type: u.type, x: u.x, y: u.y }));
+
+  const groundPoint = (cx: number, cy: number): { x: number; z: number } | null => {
+    mouseV.set((cx / window.innerWidth) * 2 - 1, -(cy / window.innerHeight) * 2 + 1);
+    raycaster.setFromCamera(mouseV, camera);
+    const dy = raycaster.ray.direction.y;
+    if (Math.abs(dy) < 1e-6) return null;
+    const t = -raycaster.ray.origin.y / dy;
+    if (!isFinite(t) || t < 0) return null;
+    const p = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(t));
+    return { x: p.x, z: p.z };
+  };
+
+  const project = (x: number, z: number): { x: number; y: number } => {
+    const v = new THREE.Vector3(x, 0, z).project(camera);
+    return { x: ((v.x + 1) / 2) * window.innerWidth, y: ((1 - v.y) / 2) * window.innerHeight };
+  };
+
+  const refreshSelection = (): void => {
+    const el = document.getElementById('selection');
+    if (!el) return;
+    if (selected.length === 0) {
+      el.textContent = 'No selection';
+      return;
+    }
+    const types = new Map<string, number>();
+    for (const id of selected) {
+      const u = sim.state.units.find((v) => v.id === id);
+      if (u) types.set(u.type, (types.get(u.type) ?? 0) + 1);
+    }
+    el.textContent = [...types.entries()].map(([t, n]) => `${n}x ${t}`).join(' + ');
+  };
+
+  const nearestNode = (x: number, z: number): { kind: string; x: number; y: number } | null => {
+    let best: { kind: string; x: number; y: number; d: number } | null = null;
+    const consider = (kind: string, tx: number, ty: number): void => {
+      const wx = tx - terrain.size / 2;
+      const wy = ty - terrain.size / 2;
+      const d = Math.hypot(wx - x, wy - z);
+      if (d <= 5 && (!best || d < best.d)) best = { kind, x: wx, y: wy, d };
+    };
+    for (const n of terrain.gold) consider('gold', n.x, n.y);
+    for (const n of terrain.stone) consider('stone', n.x, n.y);
+    for (const n of terrain.berries) consider('berry', n.x, n.y);
+    const ftx = Math.round(x + terrain.size / 2);
+    const fty = Math.round(z + terrain.size / 2);
+    for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -3; dx <= 3; dx++) {
+        const tx = ftx + dx;
+        const ty = fty + dy;
+        if (tx < 0 || ty < 0 || tx >= terrain.size || ty >= terrain.size) continue;
+        if (terrain.forest[ty * terrain.size + tx] === 1) consider('wood', tx, ty);
+      }
+    }
+    return best;
+  };
+
+  const orderAt = (wx: number, wz: number, additive: boolean): void => {
+    const mine = sim.state.units.filter((u) => selected.includes(u.id) && u.hp > 0);
+    if (mine.length === 0) return;
+    const foe = sim.state.units.find((u) => u.player !== 0 && u.hp > 0 && Math.hypot(u.x - wx, u.y - wz) <= 1.5);
+    const military = mine.filter((u) => u.type !== 'villager' && u.type !== 'monk' && u.type !== 'trader' && u.type !== 'scout');
+    if (foe && military.length > 0) {
+      for (const m of military) game.orderAttack(m.id, foe.id);
+      const rest = mine.filter((u) => !military.includes(u));
+      if (rest.length > 0) sim.commandMove(rest.map((u) => u.id), wx, wz, additive);
+      return;
+    }
+    const villagers = mine.filter((u) => u.type === 'villager');
+    if (villagers.length > 0) {
+      const node = nearestNode(wx, wz);
+      if (node) {
+        for (const v of villagers) {
+          game.assignGather(v.id, { kind: node.kind, x: node.x, y: node.y }, { x: node.x, y: node.y });
+          sim.commandMove([v.id], node.x, node.y, additive);
+        }
+        const rest = mine.filter((u) => u.type !== 'villager');
+        if (rest.length > 0) sim.commandMove(rest.map((u) => u.id), wx, wz, additive);
+        return;
+      }
+    }
+    sim.commandMove(mine.map((u) => u.id), wx, wz, additive);
+  };
+
+  const el = renderer.domElement;
+  el.addEventListener('mousedown', (e: MouseEvent) => {
+    if (e.button === 0) dragStart = { x: e.clientX, y: e.clientY };
+  });
+  el.addEventListener('mousemove', (e: MouseEvent) => {
+    if (!dragStart) return;
+    const w = Math.abs(e.clientX - dragStart.x);
+    const h = Math.abs(e.clientY - dragStart.y);
+    if (w + h < 6) return;
+    boxEl.style.display = 'block';
+    boxEl.style.left = Math.min(e.clientX, dragStart.x) + 'px';
+    boxEl.style.top = Math.min(e.clientY, dragStart.y) + 'px';
+    boxEl.style.width = w + 'px';
+    boxEl.style.height = h + 'px';
+  });
+  el.addEventListener('mouseup', (e: MouseEvent) => {
+    if (e.button !== 0 || !dragStart) return;
+    const sx = dragStart.x;
+    const sy = dragStart.y;
+    dragStart = null;
+    boxEl.style.display = 'none';
+    const g = groundPoint(e.clientX, e.clientY);
+    if (!g) return;
+    const now = performance.now();
+    const isDouble = now - lastClick.t < 400 && Math.hypot(e.clientX - lastClick.x, e.clientY - lastClick.y) < 8;
+    lastClick = { t: now, x: e.clientX, y: e.clientY };
+    if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 6) {
+      const hit = clickSelect(selView(), 0, g.x, g.z);
+      if (isDouble && hit.length > 0) {
+        const u = sim.state.units.find((v) => v.id === hit[0]);
+        if (u) selected = doubleClickSelect(selView(), 0, u.type, g.x, g.z);
+        else selected = hit;
+      } else {
+        selected = hit;
+      }
+    } else {
+      const c1 = groundPoint(sx, sy);
+      if (c1) selected = boxSelect(selView(), 0, c1.x, c1.z, g.x, g.z);
+    }
+    refreshSelection();
+  });
+  el.addEventListener('contextmenu', (e: MouseEvent) => {
+    e.preventDefault();
+    const g = groundPoint(e.clientX, e.clientY);
+    if (g) orderAt(g.x, g.z, e.shiftKey);
+  });
+  window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (/^[0-9]$/.test(e.key)) {
+      const n = Number(e.key);
+      if (e.ctrlKey || e.metaKey) {
+        groups.set(n, [...selected]);
+        e.preventDefault();
+      } else {
+        selected = groups.get(n).filter((id) => sim.state.units.some((u) => u.id === id));
+        refreshSelection();
+      }
+    }
+  });
+
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -297,8 +468,16 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
   });
 
   let frameN = 0;
+  const bannerShown = { v: false };
   function frame(): void {
     game.tick(1 / 60);
+    // Aniquilação: base inimiga destruída (unidades + prédios prontos do player 1).
+    if (!game.winner && sim.state.tick > 120) {
+      const foeAlive =
+        sim.state.units.some((u) => u.player === 1 && u.hp > 0) ||
+        [...game.buildings.values()].some((b) => b.player === 1 && b.built);
+      if (!foeAlive) game.winner = { player: 0, reason: 'annihilation' };
+    }
     sim.state.units.forEach((u, i) => {
       dummy.position.set(u.x, groundH(terrain, u.x, u.y) + 0.7, u.y);
       dummy.updateMatrix();
@@ -311,6 +490,15 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     if (frameN++ % 15 === 0) {
       updateMinimap(terrain, sim, cam);
       syncSettlement();
+      if (game.winner && !bannerShown.v) {
+        bannerShown.v = true;
+        const banner = document.getElementById('banner');
+        const card = document.getElementById('banner-card');
+        if (banner && card) {
+          card.textContent = game.winner.player === 0 ? `Vitória! (${game.winner.reason})` : 'Derrota…';
+          banner.style.display = 'flex';
+        }
+      }
       // HUD vivo: lê do MESMO estado que o __game expõe.
       const stock = sim.state.resources[0];
       const setText = (id: string, v: string): void => {
@@ -335,4 +523,22 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
   return { sim, renderer, cam };
 }
 
-boot();
+// Menu: ?test=1 inicia direto (e2e); senão o jogador clica em Iniciar.
+const TEST_MODE = typeof location !== 'undefined' && location.search.includes('test=1');
+if (TEST_MODE) {
+  const menu = document.getElementById('menu');
+  if (menu) menu.style.display = 'none';
+  boot('albion');
+} else {
+  const start = document.getElementById('btn-start');
+  const help = document.getElementById('btn-help');
+  const helpBox = document.getElementById('help');
+  help?.addEventListener('click', () => {
+    if (helpBox) helpBox.style.display = helpBox.style.display === 'block' ? 'none' : 'block';
+  });
+  start?.addEventListener('click', () => {
+    const menu = document.getElementById('menu');
+    if (menu) menu.style.display = 'none';
+    boot('albion');
+  }, { once: true });
+}

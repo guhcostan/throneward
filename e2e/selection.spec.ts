@@ -15,7 +15,7 @@ const sendCommand = (page: Page, cmd: { type: string; unitIds?: number[]; x?: nu
 test('move command advances units', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   const before = await readUnits(page);
   expect(before.length).toBeGreaterThan(0);
@@ -38,7 +38,7 @@ test('move command advances units', async ({ page }) => {
 test('shift queues waypoints', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   const [unit] = await readUnits(page);
   expect(unit).toBeDefined();

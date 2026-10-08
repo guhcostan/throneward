@@ -20,7 +20,7 @@ const cmd = (page: Page, c: Cmd): Promise<Res> =>
 test('build house spends wood and progresses', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   const before = await state(page);
   const woodBefore = before.resources[0].wood;
@@ -47,7 +47,7 @@ test('build house spends wood and progresses', async ({ page }) => {
 test('gather berries accumulates carrying', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   const before = await state(page);
   const villager = before.units.find((u) => u.type === 'villager');
@@ -66,7 +66,7 @@ test('gather berries accumulates carrying', async ({ page }) => {
 test('train villager in town center', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   const before = await state(page);
   const tc = before.buildings.find((b) => b.type === 'towncenter');
