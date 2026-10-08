@@ -72,3 +72,9 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Decisões Fase 3 (do builder combat, aceitas)
 - royalknight HP 250→190 (SPEC estágio I). Cerco sem armadura plana (resistência % não modelada — VERIFICAR). scout dmg 1 literal do SPEC (confirmar). `cavalry` só como chave de counter (tipos reais: scout/knight/royalknight).
+
+## Estado 2026-10-08 (Round 12)
+- Fase 3 integrada + tag v2: orderAttack/placeTower/placeWall no Game; torres disparam (damage×arrows); mortes limpam ordens/coleta; __game attack/spawn; e2e combate 8/8 (kill em ~7-13s, friendly recusado).
+- 203 unit, tsc 0, commit 7f5f8ad.
+- Dívida Fase 3: guerreiros ainda cápsulas na cena (warriorMesh pronto, falta trocar); muralhas sem render; ambos vão ao polimento/integração visual.
+- Próximo: Fase 4 (idades, landmarks, tecnologias).
