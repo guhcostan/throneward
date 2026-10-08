@@ -7,8 +7,8 @@ Fase 1 — Terreno/câmera/seleção/pathfinding (rodada 1/5, builders em parale
 - câmera: `src/render/camera.ts` + `tests/camera.test.ts`
 - seleção: `src/sim/selection.ts` + `tests/selection.test.ts`
 Modelo fixo: opencodex/Merge/anthropic-claude-haiku-5-5. LANDED em 2c0794c: terreno (7t), pathfind (10t), seleção (15t), sim (1t) = 33 testes, tsc 0.
-Pendente Fase 1: tests/camera.test.ts DONE (35dd027, builder, 10t — adotada versão do builder, convenção sin/cos documentada no arquivo) → 43/43 testes, tsc 0.
-Em paralelo: world render (src/render/world.ts) + e2e seleção/movimento → próxima rodada, depois integração main.ts + críticos.
+Pendente Fase 1: tests/camera.test.ts DONE (35dd027 + extensão 21t). World render DONE (f20ec6a: world.ts + 8t) → 62/62 testes, tsc 0.
+Pendente: rodar e2e (chromium instalando na R5; porta 5173 ocupada por outro projeto — usar 5174/5180) + integrar world+camera no main.ts (ninguém tocou main.ts por escopo) + críticos Gauntlet + tag v1.
 
 ## Feito
 - 2026-10-08 R1: 3 pesquisadores Haiku 5.5 entregaram parcial (buildings 203l, economy 199l, hud 240l) com VERIFICAR; units sem entrega → THR v0 pelo Lead (58l).
