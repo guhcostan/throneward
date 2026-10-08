@@ -60,7 +60,20 @@ import { RELIC_RATE, RelicState, drop as relicDrop, garrison as relicGarrison, p
 import { SacredState, sacredTick } from './sacred';
 import { checkVictory, goldFor, traderTick, tripTime, type Trader } from './trade';
 
-// Landmarks genéricos (civs sem pacote próprio). THR v0 VERIFICAR.
+// Custos de treino por unidade (THR v0 VERIFICAR — docs/spec-units.md).
+const TRAIN_COSTS: Record<string, { food?: number; wood?: number; gold?: number; stone?: number }> = {
+  villager: { food: 50 },
+  scout: { food: 60 },
+  spearman: { food: 60, wood: 20 },
+  archer: { food: 30, wood: 50 },
+  longbow: { food: 30, wood: 50 },
+  crossbow: { food: 80, gold: 40 },
+  manatarms: { food: 100, gold: 20 },
+  knight: { food: 140, gold: 100 },
+  royalknight: { food: 140, gold: 100 },
+  monk: { gold: 150 },
+  trader: { wood: 60, gold: 60 }
+};
 const GENERIC_LANDMARKS: Record<2 | 3 | 4, [LandmarkDef, LandmarkDef]> = {
   2: [
     { id: 'gen-war-hall', age: 2, name: 'War Hall', cost: { food: 200, wood: 200 }, buildTime: 90, effect: 'advance:2' },
@@ -202,11 +215,14 @@ export class Game {
   }
 
   // Enfileira treino só em prédio pronto (queueUnit já checa built e limite de fila).
-  // A era do jogador precisa liberar a unidade.
+  // A era do jogador precisa liberar a unidade. Cobra o custo THR v0 (SPEC).
   trainUnit(buildingId: number, unit: string, time: number): boolean {
     const b = this.buildings.get(buildingId);
     if (!b || !b.built) return false;
     if (!canTrain(this.ageOf(b.player), unit)) return false;
+    const stock = this.stocks[b.player];
+    const cost = TRAIN_COSTS[unit];
+    if (stock && cost && !spendStock(stock, cost)) return false;
     return queueUnit(b, unit, time);
   }
 

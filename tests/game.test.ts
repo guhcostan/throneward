@@ -187,3 +187,21 @@ describe('Game:Gallia', () => {
     expect(gq).toBeLessThan(nq);
   });
 });
+
+describe('Game:treino-custo', () => {
+  it('treinar cobra o custo e falha sem fundos', () => {
+    const g = new Game(10, 1);
+    g.ages[0].age = 2;
+    g.stocks[0].stock.wood = 1000;
+    const id = g.orderBuild(0, 'barracks', 0, 0);
+    const v = g.sim.spawnUnit('villager', 0, 1, 1);
+    g.addBuilder(id, v.id);
+    for (let i = 0; i < 3000 && !g.buildings.get(id)?.built; i++) g.tick(DT);
+    g.stocks[0].stock.food = 10;
+    expect(g.trainUnit(id, 'spearman', 5)).toBe(false); // 60F
+    g.stocks[0].stock.food = 100;
+    expect(g.trainUnit(id, 'spearman', 5)).toBe(true);
+    expect(g.stocks[0].stock.food).toBe(40);
+    expect(g.stocks[0].stock.wood).toBeLessThan(1000);
+  });
+});
