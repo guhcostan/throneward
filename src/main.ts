@@ -182,7 +182,8 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     | { type: 'research'; player: number; id: string }
     | { type: 'relic'; op: 'pickup' | 'drop' | 'garrison'; unitId: number; relicId: number; x?: number; y?: number; buildingId?: number }
     | { type: 'route'; unitId: number; from: number; to: number }
-    | { type: 'grant'; player: number; resource: 'food' | 'wood' | 'gold' | 'stone'; amount: number };
+    | { type: 'grant'; player: number; resource: 'food' | 'wood' | 'gold' | 'stone'; amount: number }
+    | { type: 'tick'; seconds: number };
   (window as unknown as { __game: unknown }).__game = {
     sim,
     game,
@@ -266,6 +267,14 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
         if (!stock) return { ok: false };
         stock.stock[cmd.resource] += cmd.amount;
         return { ok: true };
+      }
+      if (cmd.type === 'tick') {
+        // TEST HOOK: avança a simulação N segundos de uma vez (e2e only).
+        // Testa o pipeline sem espera de parede; durações são cobertas por testes unitários.
+        const seconds = Math.min(1200, Math.max(0, Number(cmd.seconds ?? 0)));
+        const steps = Math.round(seconds * 60);
+        for (let i = 0; i < steps; i++) game.tick(1 / 60);
+        return { ok: true, ticks: steps };
       }
       return { ok: false, error: 'unknown command' };
     },

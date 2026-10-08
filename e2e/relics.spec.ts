@@ -27,12 +27,11 @@ async function advanceTo(page: Page, target: number): Promise<void> {
     await cmd(page, { type: 'grant', player: 0, resource: 'stone', amount: 1000 });
     expect((await cmd(page, { type: 'advance', player: 0, slot: 0 })).ok).toBe(true);
     await cmd(page, { type: 'agebuilder', player: 0, unitId: villager!.id });
-    for (let i = 0; i < 4; i++) {
-      const extra = await cmd(page, { type: 'spawn', unit: 'villager', player: 0, x: 1 + i, y: 1 });
-      await cmd(page, { type: 'agebuilder', player: 0, unitId: extra.id! });
-    }
+    // Time-travel em vez de espera de parede (durações cobertas em unit tests).
+    // 1 construtor: 90s (era II) / 120s (era III) → 200s cobre com folga.
+    expect((await cmd(page, { type: 'tick', seconds: 200 })).ok).toBe(true);
     await expect
-      .poll(async () => (await state(page)).ages[0].age, { timeout: 120000 })
+      .poll(async () => (await state(page)).ages[0].age, { timeout: 15000 })
       .toBeGreaterThan(age);
   }
 }
