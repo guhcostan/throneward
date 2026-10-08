@@ -45,3 +45,10 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - R1-lead: scaffold TS+Vite+Three OK; tsc limpo; vitest 1/1; headless determinístico OK (seed 1234 vs 9999 hashes distintos).
 - Modelo: subagentes fixados em provider=`opencodex` model=`Merge/anthropic-claude-haiku-5-5` (Haiku 5.5). Lead roda no modelo da sessão (space-bunny-free) — divergência registrada; todo trabalho delegado usa Haiku 5.5.
 - Pendente credencial: Cloudflare (wrangler ausente, sem token) — bloqueia só o primeiro deploy, não a Fase 0.
+
+## Estado 2026-10-08 (Round 8)
+- Fase 1: DONE + tag v1. Fase 2: game.ts + settlement.ts + resources + construction + meshes landed (141 unit? ver suite).
+- CI VERDE na main (runs 37829372357 e 37829398161 success após remover pnpm-workspace.yaml fantasma + onlyBuiltDependencies).
+- Deploy: Pages `throneward`, produção https://throneward.pages.dev/ HTTP 200 (curl). E2E-vs-prod neste sandbox bloqueado por TLS do Chromium; roda no CI.
+- B-001 segue aberto (compositor headless).
+- Próximo: ligar Game+Settlement no main.ts/__game + e2e economia, depois Fase 3 (combate).
