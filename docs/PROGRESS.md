@@ -145,3 +145,9 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Fase 8 completa: skirmish (civ/0–3 bots/dificuldade/4 vitórias) + HUD lateral (ociosos/placar/objetivos/produção global).
 - Caça ao flake do ui.spec: causa raiz = #hint comia cliques de posicionamento (pointer-events:none) + grade reconstruída a cada 15 frames (assinatura) + teste com retry inválido e asserts de estado (placeMode). E2E 19/19 (3x estável), unit 286, CI verde 37859411169. Deploy prod.
 - Próximo: Fase 9 (áudio, 60fps/200u, polimento visual) + relatório final.
+
+## Estado 2026-10-08 (Round 27)
+- Fase 9 parcial: áudio procedural WebAudio (7 SFX + mute, headless-safe) + meshes cerco/universidade/maravilha/landmark (55t) + mute no HUD.
+- Perf medido: sim 0.007ms/tick (200u); render fill-bound no SwiftShader (57fps@640, 36fps@1280 sem extras, 22fps c/ 200u) — folga enorme em GPU real; instancing mantido (cápsulas) por 60fps.
+- 298 unit, CI verde 37859886183. Deploy prod.
+- Falta: guerreiros na cena (dívida), B-001, relatório final Pronto.
