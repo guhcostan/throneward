@@ -122,4 +122,39 @@ describe('bot vs bot', () => {
     expect(a.dead).toBeGreaterThan(0); // houve combate letal
     expect(a.hash).toBe(b.hash); // determinístico
   });
+
+  it('full game ends with a winner, deterministically', () => {
+    const full = (seed: number): { winner: { player: number; reason: string } | null; hash: string } => {
+      const g = new Game(seed, 2);
+      const mk = (cx: number): WorldSites => ({
+        food: [{ kind: 'berry', x: cx + 2, y: 0 }],
+        wood: [{ kind: 'wood', x: cx - 2, y: 0 }],
+        gold: [{ kind: 'gold', x: cx + 3, y: 1 }],
+        stone: [{ kind: 'stone', x: cx - 3, y: 1 }],
+        dropoff: { x: cx, y: 0 }
+      });
+      for (const [p, cx] of [[0, 0], [1, 40]] as [number, number][]) {
+        const tc = g.orderBuild(p, 'towncenter', cx, 0);
+        const b = g.buildings.get(tc)!;
+        b.progress = 1;
+        b.built = true;
+        b.hp = b.maxHp;
+        for (let i = 0; i < 5; i++) g.sim.spawnUnit('villager', p, cx + i, 1);
+      }
+      const bots = [new Bot(g, 0, 'easy', mk(0)), new Bot(g, 1, 'easy', mk(40))];
+      for (let m = 0; m < 40 && !g.winner; m++) {
+        for (let i = 0; i < Math.round(60 / DT); i++) {
+          for (const b of bots) b.update(DT);
+          g.tick(DT);
+        }
+      }
+      return { winner: g.winner, hash: g.hash() };
+    };
+    const a = full(5);
+    expect(a.winner).not.toBeNull(); // bot vs bot termina com vencedor
+    expect(a.winner!.reason).toBe('landmarks');
+    const b = full(5);
+    expect(b.winner).toEqual(a.winner);
+    expect(b.hash).toBe(a.hash);
+  });
 });

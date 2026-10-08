@@ -599,6 +599,26 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       sfx.attack();
       return;
     }
+    // Cerco a prédio inimigo próximo do clique (pegada + 1.5).
+    const foeB = [...game.buildings.values()].find((b) => {
+      if (b.player === 0) return false;
+      let w = 3;
+      let h = 3;
+      try {
+        const fp = buildingFootprint(b.type as BuildingKind);
+        w = fp.w;
+        h = fp.h;
+      } catch {
+        w = 3;
+        h = 3;
+      }
+      return Math.abs(b.x - wx) <= w / 2 + 1.5 && Math.abs(b.y - wz) <= h / 2 + 1.5;
+    });
+    if (foeB && military.length > 0) {
+      for (const m of military) game.orderSiege(m.id, foeB.id);
+      sfx.attack();
+      return;
+    }
     const villagers = mine.filter((u) => u.type === 'villager');
     if (villagers.length > 0) {
       const node = nearestNode(wx, wz);
@@ -869,7 +889,15 @@ function readSkirmish(): SkirmishConfig {
 if (TEST_MODE) {
   const menu = document.getElementById('menu');
   if (menu) menu.style.display = 'none';
-  boot();
+  // ?only=<reason> isola uma via de vitória no e2e (todas ligadas por padrão).
+  // ?bots=N joga sem bots (mecânica pura, sem interferência).
+  const params = new URLSearchParams(location.search);
+  const only = params.get('only');
+  const botsN = params.get('bots');
+  const cfg = { ...DEFAULT_SKIRMISH };
+  if (only) cfg.victories = [only];
+  if (botsN !== null) cfg.bots = [];
+  boot(cfg);
 } else {
   const start = document.getElementById('btn-start');
   const help = document.getElementById('btn-help');

@@ -18,6 +18,7 @@ import {
   buildTick,
   getDef,
   placeBuilding,
+  popCap,
   productionTick,
   queueUnit,
   type Building,
@@ -72,7 +73,8 @@ const TRAIN_COSTS: Record<string, { food?: number; wood?: number; gold?: number;
   knight: { food: 140, gold: 100 },
   royalknight: { food: 140, gold: 100 },
   monk: { gold: 150 },
-  trader: { wood: 60, gold: 60 }
+  trader: { wood: 60, gold: 60 },
+  ram: { wood: 200 }
 };
 const GENERIC_LANDMARKS: Record<2 | 3 | 4, [LandmarkDef, LandmarkDef]> = {
   2: [
@@ -279,10 +281,13 @@ export class Game {
 
   // Enfileira treino só em prédio pronto (queueUnit já checa built e limite de fila).
   // A era do jogador precisa liberar a unidade. Cobra o custo THR v0 (SPEC).
+  // Teto populacional: sem casas, sem treino (SPEC: 200 via casas).
   trainUnit(buildingId: number, unit: string, time: number): boolean {
     const b = this.buildings.get(buildingId);
     if (!b || !b.built) return false;
     if (!canTrain(this.ageOf(b.player), unit)) return false;
+    const cap = popCap([...this.buildings.values()].filter((x) => x.player === b.player));
+    if ((this.popUsed()[b.player] ?? 0) >= cap) return false;
     const stock = this.stocks[b.player];
     const cost = TRAIN_COSTS[unit];
     if (stock && cost && !spendStock(stock, cost)) return false;

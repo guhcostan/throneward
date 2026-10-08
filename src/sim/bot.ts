@@ -16,6 +16,7 @@ export interface WorldSites {
 
 const DECIDE_INTERVAL: Record<Difficulty, number> = { easy: 8, medium: 4, hard: 2 };
 const ARMY_CAP: Record<Difficulty, number> = { easy: 8, medium: 15, hard: 25 };
+const VIL_CAP: Record<Difficulty, number> = { easy: 14, medium: 20, hard: 28 };
 const ATTACK_SIZE: Record<Difficulty, number> = { easy: 6, medium: 10, hard: 12 };
 
 // Distribuição de aldeões (fração) por era: [food, wood, gold, stone].
@@ -56,6 +57,7 @@ export class Bot {
     this.buildMilitary();
     this.produce();
     this.combat();
+    this.siege();
     this.sacred();
   }
 
@@ -81,10 +83,10 @@ export class Bot {
   private economy(): void {
     const g = this.game;
     const villagers = this.mine().filter((u) => u.type === 'villager');
-    // 1. Treina aldeões (fila até 2 por TC).
+    // 1. Treina aldeões (fila até 2 por TC, teto por dificuldade).
     for (const b of g.buildings.values()) {
       if (b.player !== this.player || b.type !== 'towncenter' || !b.built) continue;
-      if (b.queue.length < 2) g.trainUnit(b.id, 'villager', 20);
+      if (b.queue.length < 2 && villagers.length < VIL_CAP[this.difficulty]) g.trainUnit(b.id, 'villager', 20);
     }
     // 2. Casas sob pressão populacional.
     const used = g.popUsed()[this.player] ?? 0;
@@ -159,7 +161,7 @@ export class Bot {
     const age = g.ageOf(this.player);
     const want: string[] = [];
     if (age >= 2) want.push('barracks');
-    if (age >= 3) want.push('archerrange', 'stable');
+    if (age >= 3) want.push('archerrange', 'stable', 'siegeworkshop');
     const h = this.home();
     let i = 0;
     for (const type of want) {
@@ -174,30 +176,61 @@ export class Bot {
   }
 
   // Composição por counter (hard/medium; easy produz lanceiros+arqueiros).
-  private composition(): { unit: string; building: string }[] {
+  // Aríetes (era III+) para derrubar prédios e fechar jogos.
+  private composition(): { unit: string; building: string; time: number }[] {
+    const out: { unit: string; building: string; time: number }[] = [];
+    if (this.game.ageOf(this.player) >= 3) {
+      const rams = this.mine().filter((u) => u.type === 'ram').length;
+      if (rams < 2) out.push({ unit: 'ram', building: 'siegeworkshop', time: 30 });
+    }
     const foes = this.foes().filter((u) => MILITARY.has(u.type));
     const cav = foes.filter((u) => u.type === 'knight' || u.type === 'royalknight' || u.type === 'scout').length;
     const arch = foes.filter((u) => u.type === 'archer' || u.type === 'longbow' || u.type === 'crossbow').length;
     const heavy = foes.filter((u) => u.type === 'manatarms' || u.type === 'knight').length;
     if (this.difficulty !== 'easy') {
-      if (cav > arch && cav > 0) return [{ unit: 'spearman', building: 'barracks' }];
-      if (heavy > 2) return [{ unit: 'crossbow', building: 'archerrange' }];
-      if (arch > cav && arch > 0) return [{ unit: 'knight', building: 'stable' }];
+      if (cav > arch && cav > 0) out.push({ unit: 'spearman', building: 'barracks', time: 15 });
+      else if (heavy > 2) out.push({ unit: 'crossbow', building: 'archerrange', time: 22 });
+      else if (arch > cav && arch > 0) out.push({ unit: 'knight', building: 'stable', time: 35 });
     }
-    return [
-      { unit: 'spearman', building: 'barracks' },
-      { unit: 'archer', building: 'archerrange' }
-    ];
+    if (out.length === 0) {
+      out.push(
+        { unit: 'spearman', building: 'barracks', time: 15 },
+        { unit: 'archer', building: 'archerrange', time: 15 }
+      );
+    }
+    return out;
   }
 
   private produce(): void {
     const g = this.game;
     const army = this.mine().filter((u) => MILITARY.has(u.type)).length;
     if (army >= ARMY_CAP[this.difficulty]) return;
-    for (const { unit, building } of this.composition()) {
+    for (const { unit, building, time } of this.composition()) {
       const b = [...g.buildings.values()].find((x) => x.player === this.player && x.type === building && x.built);
       if (!b || b.queue.length >= 2) continue;
-      g.trainUnit(b.id, unit, 15);
+      g.trainUnit(b.id, unit, time);
+    }
+  }
+
+  // Cerco: aríetes derrubam o prédio inimigo mais próximo (para fechar jogos).
+  private siege(): void {
+    const g = this.game;
+    const rams = this.mine().filter((u) => u.type === 'ram');
+    if (rams.length === 0) return;
+    const targets = [...g.buildings.values()].filter((b) => b.player !== this.player);
+    if (targets.length === 0) return;
+    for (const r of rams) {
+      let best = targets[0];
+      let bd = Infinity;
+      for (const t of targets) {
+        const d = dist(r.x, r.y, t.x, t.y);
+        if (d < bd) {
+          bd = d;
+          best = t;
+        }
+      }
+      if (bd <= 2) g.orderSiege(r.id, best.id);
+      else g.sim.commandMove([r.id], best.x, best.y);
     }
   }
 
@@ -205,6 +238,26 @@ export class Bot {
     const g = this.game;
     const army = this.mine().filter((u) => MILITARY.has(u.type));
     const foes = this.foes();
+    // Sem unidades inimigas: marcha sobre os prédios (finalização).
+    if (army.length > 0 && foes.length === 0) {
+      const targets = [...g.buildings.values()].filter((b) => b.player !== this.player);
+      if (targets.length > 0) {
+        for (const m of army) {
+          let best = targets[0];
+          let bd = Infinity;
+          for (const t of targets) {
+            const d = dist(m.x, m.y, t.x, t.y);
+            if (d < bd) {
+              bd = d;
+              best = t;
+            }
+          }
+          if (bd <= 2) g.orderSiege(m.id, best.id);
+          else g.sim.commandMove([m.id], best.x, best.y);
+        }
+      }
+      return;
+    }
     if (army.length === 0 || foes.length === 0) return;
     const h = this.home();
     // Defesa: inimigos perto da base têm prioridade.

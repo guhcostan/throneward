@@ -41,15 +41,15 @@ export const AGE_UNLOCKS: Record<Age, { units: string[]; buildings: string[] }> 
     ],
   },
   3: {
-    units: ['villager', 'scout', 'spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'monk'],
+    units: ['villager', 'scout', 'spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'monk', 'ram', 'mangonel', 'springald'],
     buildings: [
       'towncenter', 'house', 'farm', 'mill', 'lumber', 'mining',
       'barracks', 'archerrange', 'stable', 'blacksmith', 'market', 'outpost', 'palisade',
-      'siege', 'monastery', 'university', 'tower', 'stonewall', 'keep',
+      'siege', 'siegeworkshop', 'monastery', 'university', 'tower', 'stonewall', 'keep',
     ],
   },
   4: {
-    units: ['villager', 'scout', 'spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'monk', 'trebuchet', 'bombard'],
+    units: ['villager', 'scout', 'spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'monk', 'ram', 'mangonel', 'springald', 'trebuchet', 'bombard'],
     buildings: [
       'towncenter', 'house', 'farm', 'mill', 'lumber', 'mining',
       'barracks', 'archerrange', 'stable', 'blacksmith', 'market', 'outpost', 'palisade',
