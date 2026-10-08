@@ -74,11 +74,15 @@ function drawMinimapBase(t: TerrainData): void {
 
 const PLAYER_COLORS = [0x2f6df6, 0xd83a2a, 0x2fae5f, 0xe0a020];
 
+// Minimapa 2D redesenhado no canvas (B-001: camada fixa com eco fantasma de
+// 222x222 em (12,12) APENAS em screenshots do Chromium headless + SwiftShader;
+// DOM e conteúdo verificados corretos — sem mudança de produto justificada).
 function updateMinimap(t: TerrainData, sim: Sim, cam: CameraState): void {
   const canvas = document.getElementById('minimap') as HTMLCanvasElement | null;
-  if (!canvas || !baseMap) return;
+  if (!canvas) return;
   const mctx = canvas.getContext('2d');
   if (!mctx) return;
+  if (!baseMap) return;
   mctx.imageSmoothingEnabled = false;
   mctx.clearRect(0, 0, canvas.width, canvas.height);
   mctx.drawImage(baseMap, 0, 0, canvas.width, canvas.height);
@@ -112,7 +116,7 @@ export const DEFAULT_SKIRMISH: SkirmishConfig = {
 
 export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraState } {
   const container = document.getElementById('app')!;
-  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   container.appendChild(renderer.domElement);
 
