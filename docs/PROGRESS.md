@@ -8,7 +8,9 @@ Fase 1 — Terreno/câmera/seleção/pathfinding (rodada 1/5, builders em parale
 - seleção: `src/sim/selection.ts` + `tests/selection.test.ts`
 Modelo fixo: opencodex/Merge/anthropic-claude-haiku-5-5. LANDED em 2c0794c: terreno (7t), pathfind (10t), seleção (15t), sim (1t) = 33 testes, tsc 0.
 Pendente Fase 1: tests/camera.test.ts DONE (35dd027 + extensão 21t). World render DONE (f20ec6a: world.ts + 8t) → 62/62 testes, tsc 0.
-Pendente: rodar e2e (chromium instalando na R5; porta 5173 ocupada por outro projeto — usar 5174/5180) + integrar world+camera no main.ts (ninguém tocou main.ts por escopo) + críticos Gauntlet + tag v1.
+Pendente: rodar e2e DONE (3/3: boot + move + shift-queue, porta 5180; config agora lê E2E_PORT/E2E_BASE_URL e usa --host 127.0.0.1) + main.ts integrado (terreno 64² com relevo/vertexColors, 6000 árvores, câmera do builder, minimapa 128px, __game v0.1-fase1).
+B-001 (visual, aberto): retângulo preto ~220px top-left SÓ em screenshots headless; minimapa em si renderiza correto (element screenshot 222px OK); elementFromPoint(100,150)=canvas WebGL fullscreen; some quando #minimap display:none; só 2 canvas no DOM; idêntico antes/depois de clareiras+hemi (não é árvore próxima). Suspeita: compositor headless. Verificar em browser real/prod. Não afeta sim/e2e.
+spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFICAR — fórmula de armadura subtração-vs-% em aberto p/ Fase 3).
 
 ## Feito
 - 2026-10-08 R1: 3 pesquisadores Haiku 5.5 entregaram parcial (buildings 203l, economy 199l, hud 240l) com VERIFICAR; units sem entrega → THR v0 pelo Lead (58l).

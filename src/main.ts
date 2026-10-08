@@ -1,41 +1,118 @@
 import * as THREE from 'three';
 import { Sim } from './sim/sim';
+import { generateTerrain, type TerrainData } from './sim/terrain';
+import { createCamera, attachCamera, cameraPos, type CameraState } from './render/camera';
+import { heightColor, forestInstances, minimapImage } from './render/world';
 
-// Minimal 3D bootstrap: terrain plane + instanced units placeholder + camera pan/zoom/rotate.
-// Expanded in Fase 1 by builders.
+// Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
 
-export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer } {
+const SEED = 1234;
+const MAP_SIZE = 64;
+
+function buildGround(t: TerrainData): THREE.Mesh {
+  const geo = new THREE.PlaneGeometry(t.size, t.size, t.size - 1, t.size - 1);
+  const pos = geo.attributes.position as THREE.BufferAttribute;
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const px = pos.getX(i);
+    const py = pos.getY(i);
+    // PlaneGeometry lies in XY; after rotation -PI/2, x->x, y->-z. Map to tile:
+    const tx = Math.max(0, Math.min(t.size - 1, Math.round(px + t.size / 2)));
+    const ty = Math.max(0, Math.min(t.size - 1, Math.round(py + t.size / 2)));
+    const h = t.height[ty * t.size + tx];
+    pos.setZ(i, h * 2);
+    const [r, g, b] = heightColor(h);
+    colors[i * 3] = r;
+    colors[i * 3 + 1] = g;
+    colors[i * 3 + 2] = b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(
+    geo,
+    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  return mesh;
+}
+
+function drawMinimap(t: TerrainData): void {
+  const canvas = document.getElementById('minimap') as HTMLCanvasElement | null;
+  if (!canvas) return;
+  const px = 128;
+  const img = minimapImage(t, px);
+  const off = document.createElement('canvas');
+  off.width = px;
+  off.height = px;
+  const ctx = off.getContext('2d');
+  if (!ctx) return;
+  const data = new ImageData(px, px);
+  data.data.set(img);
+  ctx.putImageData(data, 0, 0);
+  const mctx = canvas.getContext('2d');
+  if (!mctx) return;
+  mctx.imageSmoothingEnabled = false;
+  mctx.clearRect(0, 0, canvas.width, canvas.height);
+  mctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+}
+
+export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraState } {
   const container = document.getElementById('app')!;
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a2b1a);
+  scene.background = new THREE.Color(0x87a5c8);
 
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(20, 20, 20);
-  camera.lookAt(0, 0, 0);
+  const cam = createCamera();
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+  const applyCamera = (): void => {
+    const p = cameraPos(cam);
+    camera.position.set(p.x, p.y, p.z);
+    camera.lookAt(cam.tx, 0, cam.tz);
+  };
+  applyCamera();
+  attachCamera(renderer.domElement, () => cam, applyCamera);
 
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
-  light.position.set(10, 20, 10);
+  light.position.set(20, 30, 10);
   scene.add(light);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  scene.add(new THREE.HemisphereLight(0xbdd7ff, 0x3a6b35, 0.6));
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(100, 100),
-    new THREE.MeshStandardMaterial({ color: 0x3a6b35 })
+  const terrain = generateTerrain({ seed: SEED, size: MAP_SIZE, players: 2 });
+  scene.add(buildGround(terrain));
+
+  // Forest instancing (cones — low-poly placeholder; procedural models in later phases).
+  const trees = forestInstances(terrain).slice(0, 6000);
+  const treeMesh = new THREE.InstancedMesh(
+    new THREE.ConeGeometry(0.6, 2.2, 6),
+    new THREE.MeshStandardMaterial({ color: 0x3f7d36, roughness: 1 }),
+    Math.max(1, trees.length)
   );
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
+  const dummy = new THREE.Object3D();
+  trees.forEach((tr, i) => {
+    dummy.position.set(tr.x - terrain.size / 2, tr.y * 2 + 1.1, tr.z - terrain.size / 2);
+    dummy.updateMatrix();
+    treeMesh.setMatrixAt(i, dummy.matrix);
+  });
+  treeMesh.count = trees.length;
+  treeMesh.instanceMatrix.needsUpdate = true;
+  scene.add(treeMesh);
 
-  const sim = new Sim({ seed: 1234, tickRate: 60 });
-  sim.spawnUnit('villager', 0, 2, 2);
-  sim.spawnUnit('villager', 0, -2, -1);
+  drawMinimap(terrain);
+
+  const sim = new Sim({ seed: SEED, tickRate: 60 });
+  for (const s of terrain.spawns) {
+    sim.spawnUnit('villager', 0, s.x - terrain.size / 2, s.y - terrain.size / 2);
+  }
+  sim.spawnUnit('scout', 0, 0, 0);
 
   // window.__game — reading state + sending commands (used by tests).
   (window as unknown as { __game: unknown }).__game = {
     sim,
+    terrain: { seed: SEED, size: MAP_SIZE, spawns: terrain.spawns },
     getState: () => JSON.parse(JSON.stringify(sim.state)),
     command: (cmd: { type: string; unitIds?: number[]; x?: number; y?: number; queue?: boolean }) => {
       if (cmd.type === 'move' && cmd.unitIds && cmd.x !== undefined && cmd.y !== undefined) {
@@ -44,29 +121,20 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer } {
       }
       return { ok: false, error: 'unknown command' };
     },
-    version: '0.0.1-fase0'
+    version: '0.1-fase1'
   };
 
-  // Instanced placeholder for units (real low-poly procedural models in Fase 1+).
   const unitMesh = new THREE.InstancedMesh(
     new THREE.CapsuleGeometry(0.3, 0.8, 4, 8),
     new THREE.MeshStandardMaterial({ color: 0xd8c48a }),
     512
   );
   scene.add(unitMesh);
-  const dummy = new THREE.Object3D();
-
-  // Basic camera: drag pan, wheel zoom, right-drag rotate.
-  let yaw = Math.PI / 4, dist = 35, tx = 0, tz = 0;
-  const el = renderer.domElement;
-  el.addEventListener('wheel', (e: WheelEvent) => { dist = Math.min(80, Math.max(10, dist + e.deltaY * 0.02)); }, { passive: true });
 
   function frame(): void {
-    camera.position.set(tx + dist * Math.cos(yaw) * 0.7, dist * 0.7, tz + dist * Math.sin(yaw) * 0.7);
-    camera.lookAt(tx, 0, tz);
     sim.tickOnce(1 / 60);
     sim.state.units.forEach((u, i) => {
-      dummy.position.set(u.x, 0.8, u.y);
+      dummy.position.set(u.x, 1.0, u.y);
       dummy.updateMatrix();
       unitMesh.setMatrixAt(i, dummy.matrix);
     });
@@ -77,7 +145,7 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer } {
   }
   frame();
 
-  return { sim, renderer };
+  return { sim, renderer, cam };
 }
 
 boot();

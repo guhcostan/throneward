@@ -228,6 +228,22 @@ export function generateTerrain(cfg: TerrainConfig): TerrainData {
     if (farEnough && apart) relics.push({ x, y });
   }
 
+  // TC clearings: no forest/stealth near spawns or map center (gameplay + camera).
+  const clearings: { x: number; y: number; r: number }[] = [
+    ...spawns.map((s) => ({ x: s.x, y: s.y, r: 7 })),
+    { x: cx, y: cy, r: 5 }
+  ];
+  for (const c of clearings) {
+    for (let y = Math.max(0, Math.floor(c.y - c.r)); y <= Math.min(size - 1, Math.ceil(c.y + c.r)); y++) {
+      for (let x = Math.max(0, Math.floor(c.x - c.r)); x <= Math.min(size - 1, Math.ceil(c.x + c.r)); x++) {
+        if (dist(x, y, c.x, c.y) <= c.r) {
+          forest[y * size + x] = 0;
+          stealth[y * size + x] = 0;
+        }
+      }
+    }
+  }
+
   return {
     size,
     height,
