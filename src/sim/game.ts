@@ -51,6 +51,11 @@ import {
   type AlbLandmark,
   type PlacedStructure,
 } from './civs/albion';
+import {
+  GALLIA_LANDMARKS,
+  galliaStableMult,
+  type GalLandmark,
+} from './civs/gallia';
 
 // Landmarks genéricos (civs sem pacote próprio). THR v0 VERIFICAR.
 const GENERIC_LANDMARKS: Record<2 | 3 | 4, [LandmarkDef, LandmarkDef]> = {
@@ -206,6 +211,13 @@ export class Game {
         { id: b.id, age: next, name: b.name, cost: { ...b.cost }, buildTime: b.buildTime, effect: b.effect }
       ];
     }
+    if (this.civs[player] === 'gallia') {
+      const [a, b]: [GalLandmark, GalLandmark] = GALLIA_LANDMARKS[next];
+      return [
+        { id: a.id, age: next, name: a.name, cost: { ...a.cost }, buildTime: a.buildTime, effect: a.effect },
+        { id: b.id, age: next, name: b.name, cost: { ...b.cost }, buildTime: b.buildTime, effect: b.effect }
+      ];
+    }
     return GENERIC_LANDMARKS[next];
   }
 
@@ -346,7 +358,9 @@ export class Game {
       const b = this.buildings.get(id);
       if (!b) continue;
       buildTick(b, dt);
-      for (const unit of productionTick(b, dt)) {
+      // Bônus Gallia: estábulo produz 20% mais rápido (THR v0 VERIFICAR).
+      const pdt = b.type === 'stable' && this.civs[b.player] === 'gallia' ? dt * galliaStableMult() : dt;
+      for (const unit of productionTick(b, pdt)) {
         trained.push({ building: b.id, unit });
         const x = b.rally ? b.rally.x : b.x + SPAWN_OFFSET_X;
         const y = b.rally ? b.rally.y : b.y;

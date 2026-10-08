@@ -150,3 +150,40 @@ describe('Game: determinismo', () => {
     expect(a.stocks).toEqual(b.stocks);
   });
 });
+
+describe('Game:Gallia', () => {
+  it('ageChoices da Gallia usa landmarks próprios', () => {
+    const g = new Game(8, 1, ['gallia']);
+    const pair = g.ageChoices(0);
+    expect(pair).not.toBe(null);
+    expect(pair![0].id).toContain('gallia');
+    expect(pair![1].id).toContain('gallia');
+  });
+
+  it('estábulo gallia produz mais rápido que genérico', () => {
+    const mk = (civs?: string[]): Game => {
+      const g = new Game(9, 1, civs);
+      g.ages[0].age = 3; // stable (II) + knight (III)
+      g.stocks[0].stock.wood = 1000;
+      const id = g.orderBuild(0, 'stable', 0, 0);
+      const v = g.sim.spawnUnit('villager', 0, 1, 1);
+      g.addBuilder(id, v.id);
+      for (let i = 0; i < 2000 && !g.buildings.get(id)?.built; i++) g.tick(DT);
+      return g;
+    };
+    const DT = 1 / 60;
+    const gal = mk(['gallia']);
+    const gen = mk();
+    const gid = [...gal.buildings.keys()][0];
+    const nid = [...gen.buildings.keys()][0];
+    gal.trainUnit(gid, 'knight', 10);
+    gen.trainUnit(nid, 'knight', 10);
+    for (let i = 0; i < 300; i++) {
+      gal.tick(DT);
+      gen.tick(DT);
+    }
+    const gq = gal.buildings.get(gid)!.queue[0]?.time ?? 0;
+    const nq = gen.buildings.get(nid)!.queue[0]?.time ?? 0;
+    expect(gq).toBeLessThan(nq);
+  });
+});
