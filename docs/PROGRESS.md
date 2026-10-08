@@ -125,3 +125,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - JOGÁVEL v0.4: menu (Iniciar/Como jogar) + boot por clique (?test=1 p/ e2e); seleção clique/caixa/duplo + grupos Ctrl+0-9; ordens botão direito (mover/atacar/coletar c/ shift); pan botão do meio; base inimiga passiva (TC+3 arqueiros+2 lanceiros); vitória aniquilação + banner.
 - E2E 13/13 (menu 2 + mouse select/order), CI verde 37850364645. Deploy prod com menu.
 - Falta p/ loop completo: paleta de construção/treino/era na UI (botões ainda placeholders), monges/comércio no jogo humano.
+
+## Estado 2026-10-08 (Round 23)
+- Loop jogável completo pela UI: construir (paleta+posicionamento), treinar (TC/quartel/arqueria), era (2 landmarks+auto-designar), prédios selecionáveis, Esc/botão direito cancela.
+- E2E 14/14 (ui.spec: select→build→train→advance por mouse em 3.9s), CI verde 37851107579. Deploy prod.
+- Próximo: Fase 7 (bots) + polimento (guerreiros na cena, muros render).
