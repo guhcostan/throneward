@@ -52,3 +52,9 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Deploy: Pages `throneward`, produção https://throneward.pages.dev/ HTTP 200 (curl). E2E-vs-prod neste sandbox bloqueado por TLS do Chromium; roda no CI.
 - B-001 segue aberto (compositor headless).
 - Próximo: ligar Game+Settlement no main.ts/__game + e2e economia, depois Fase 3 (combate).
+
+## Estado 2026-10-08 (Round 9)
+- Fase 2 integrada: Game+Settlement no main.ts; __game v0.2 (gather/build/addbuilder/train/instant+getState estendido); TC inicial renderizado (screenshot fase2-economia.png).
+- E2E 6/6 (boot, move, shift-queue, build-house, gather, train). Train usa expect.poll (timing rAF headless marginal).
+- B-001 persiste (compositor headless; TC/unidades/minimapa OK).
+- Próximo: Fase 3 (combate e defesas) + tag v2.
