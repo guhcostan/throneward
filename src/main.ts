@@ -4,9 +4,10 @@ import { Game } from './sim/game';
 import { generateTerrain, type TerrainData } from './sim/terrain';
 import { createCamera, attachCamera, cameraPos, type CameraState } from './render/camera';
 import { heightColor, forestInstances, minimapImage } from './render/world';
-import { Settlement } from './render/settlement';
+import { Settlement, buildingFootprint } from './render/settlement';
 import type { BuildingKind } from './render/buildings';
-import { popCap } from './sim/construction';
+import { popCap, getDef } from './sim/construction';
+import { canBuild } from './sim/ages';
 import { clickSelect, boxSelect, doubleClickSelect, ControlGroups } from './sim/selection';
 
 // Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
@@ -310,6 +311,9 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   const raycaster = new THREE.Raycaster();
   const mouseV = new THREE.Vector2();
   let selected: number[] = [];
+  let selectedB: number[] = [];
+  let placeMode: { building: string } | null = null;
+  let choosingAge = false;
   const groups = new ControlGroups();
   let lastClick = { t: 0, x: 0, y: 0 };
   let dragStart: { x: number; y: number } | null = null;
@@ -339,7 +343,7 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   const refreshSelection = (): void => {
     const el = document.getElementById('selection');
     if (!el) return;
-    if (selected.length === 0) {
+    if (selected.length === 0 && selectedB.length === 0) {
       el.textContent = 'No selection';
       return;
     }
@@ -349,6 +353,127 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
       if (u) types.set(u.type, (types.get(u.type) ?? 0) + 1);
     }
     el.textContent = [...types.entries()].map(([t, n]) => `${n}x ${t}`).join(' + ');
+    if (el.textContent === '') el.textContent = 'No selection';
+    const blds = selectedB.map((id) => game.buildings.get(id)).filter((b) => b !== undefined);
+    if (blds.length > 0) {
+      const info = blds.map((b) => {
+        const q = b.queue.length > 0 ? ` [${b.queue.length} na fila]` : '';
+        return `${b.type}${b.built ? '' : ` ${(b.progress * 100) | 0}%`}${q}`;
+      }).join(' + ');
+      el.textContent = el.textContent === 'No selection' ? info : el.textContent + ' | ' + info;
+    }
+  };
+
+  // ---- Grade de comandos contextual ----
+  const TRAINABLE: Record<string, { unit: string; label: string; time: number }[]> = {
+    towncenter: [{ unit: 'villager', label: 'Aldeão', time: 20 }],
+    barracks: [{ unit: 'spearman', label: 'Lanceiro', time: 15 }],
+    archerrange: [
+      { unit: 'archer', label: 'Arqueiro', time: 15 },
+      { unit: 'longbow', label: 'Arco Longo', time: 15 }
+    ],
+    stable: [{ unit: 'scout', label: 'Batedor', time: 25 }]
+  };
+  const BUILDABLE = ['house', 'farm', 'mill', 'barracks', 'archerrange', 'stable', 'market'];
+
+  const setHint = (t: string | null): void => {
+    const h = document.getElementById('hint');
+    if (!h) return;
+    if (!t) {
+      h.style.display = 'none';
+      return;
+    }
+    h.textContent = t;
+    h.style.display = 'block';
+  };
+
+  const canAfford = (cost: { food?: number; wood?: number; gold?: number; stone?: number }): boolean => {
+    const s = sim.state.resources[0];
+    return (cost.food ?? 0) <= s.food && (cost.wood ?? 0) <= s.wood && (cost.gold ?? 0) <= s.gold && (cost.stone ?? 0) <= s.stone;
+  };
+
+  const refreshGrid = (): void => {
+    const grid = document.getElementById('cmd-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const btn = (act: string, label: string, title: string, enabled: boolean, onClick: () => void): void => {
+      const b = document.createElement('button');
+      b.dataset.act = act;
+      b.textContent = label;
+      b.title = title;
+      b.disabled = !enabled;
+      b.addEventListener('click', onClick);
+      grid.appendChild(b);
+    };
+    if (placeMode) {
+      btn('cancel', 'Cancelar', 'Cancelar posicionamento (Esc)', true, () => {
+        placeMode = null;
+        setHint(null);
+        refreshGrid();
+      });
+      return;
+    }
+    if (choosingAge) {
+      const pair = game.ageChoices(0);
+      if (pair) {
+        pair.forEach((lm, i) => {
+          btn(`landmark-${i}`, lm.name, `${lm.effect} — F:${lm.cost.food ?? 0} M:${lm.cost.wood ?? 0} O:${lm.cost.gold ?? 0} P:${lm.cost.stone ?? 0}`, canAfford(lm.cost), () => {
+            if (game.advanceAge(0, i as 0 | 1)) {
+              // Auto-designa até 5 aldeões selecionados para a obra.
+              const vils = sim.state.units.filter((u) => selected.includes(u.id) && u.type === 'villager').slice(0, 5);
+              for (const v of vils) game.addAgeBuilder(0, v.id);
+              setHint(`Era avançando: ${lm.name}`);
+            }
+            choosingAge = false;
+            refreshGrid();
+          });
+        });
+      }
+      btn('cancel', 'Voltar', 'Voltar', true, () => {
+        choosingAge = false;
+        refreshGrid();
+      });
+      return;
+    }
+    const selUnits = sim.state.units.filter((u) => selected.includes(u.id));
+    const hasVillager = selUnits.some((u) => u.type === 'villager');
+    if (hasVillager) {
+      for (const bt of BUILDABLE) {
+        let ok = false;
+        let title = bt;
+        try {
+          const def = getDef(bt);
+          ok = canBuild(game.ageOf(0), bt) && canAfford(def.cost);
+          title = `${bt} — M:${def.cost.wood ?? 0} F:${def.cost.food ?? 0} O:${def.cost.gold ?? 0} P:${def.cost.stone ?? 0}`;
+        } catch {
+          ok = false;
+        }
+        btn(`build-${bt}`, bt, title, ok, () => {
+          placeMode = { building: bt };
+          setHint(`Clique no terreno para construir: ${bt} (Esc cancela)`);
+          refreshGrid();
+        });
+      }
+      const st = game.ages[0];
+      btn('advance', 'Era ↑', 'Avançar de era (landmark)', st.age < 4 && !st.advancing, () => {
+        choosingAge = true;
+        refreshGrid();
+      });
+    }
+    for (const bid of selectedB) {
+      const b = game.buildings.get(bid);
+      if (!b || b.player !== 0 || !b.built) continue;
+      for (const t of TRAINABLE[b.type] ?? []) {
+        btn(`train-${t.unit}`, t.label, `Treinar ${t.label}`, true, () => {
+          game.trainUnit(bid, t.unit, t.time);
+          refreshGrid();
+          refreshSelection();
+        });
+      }
+    }
+    if (grid.children.length === 0) {
+      btn('noop', '—', 'Selecione aldeões ou prédios', false, () => undefined);
+    }
   };
 
   const nearestNode = (x: number, z: number): { kind: string; x: number; y: number } | null => {
@@ -429,34 +554,91 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
     const isDouble = now - lastClick.t < 400 && Math.hypot(e.clientX - lastClick.x, e.clientY - lastClick.y) < 8;
     lastClick = { t: now, x: e.clientX, y: e.clientY };
     if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 6) {
+      if (placeMode) {
+        const id = game.orderBuild(0, placeMode.building, g.x, g.z);
+        if (id !== -1) {
+          for (const uid of selected) {
+            const u = sim.state.units.find((v) => v.id === uid);
+            if (u && u.type === 'villager') game.addBuilder(id, uid);
+          }
+          setHint(`${placeMode.building} em construção`);
+        } else {
+          setHint('Sem fundos ou era insuficiente');
+        }
+        placeMode = null;
+        refreshSelection();
+        refreshGrid();
+        return;
+      }
       const hit = clickSelect(selView(), 0, g.x, g.z);
       if (isDouble && hit.length > 0) {
         const u = sim.state.units.find((v) => v.id === hit[0]);
         if (u) selected = doubleClickSelect(selView(), 0, u.type, g.x, g.z);
         else selected = hit;
-      } else {
+        selectedB = [];
+      } else if (hit.length > 0) {
         selected = hit;
+        selectedB = [];
+      } else {
+        // Seleção de prédio próprio pela pegada.
+        selected = [];
+        selectedB = [];
+        for (const b of game.buildings.values()) {
+          if (b.player !== 0) continue;
+          let w = 2;
+          let h = 2;
+          try {
+            const fp = buildingFootprint(b.type as BuildingKind);
+            w = fp.w;
+            h = fp.h;
+          } catch {
+            w = 3;
+            h = 3;
+          }
+          if (Math.abs(b.x - g.x) <= w / 2 + 0.5 && Math.abs(b.y - g.z) <= h / 2 + 0.5) {
+            selectedB = [b.id];
+            break;
+          }
+        }
       }
     } else {
       const c1 = groundPoint(sx, sy);
-      if (c1) selected = boxSelect(selView(), 0, c1.x, c1.z, g.x, g.z);
+      if (c1) {
+        selected = boxSelect(selView(), 0, c1.x, c1.z, g.x, g.z);
+        selectedB = [];
+      }
     }
     refreshSelection();
+    refreshGrid();
   });
   el.addEventListener('contextmenu', (e: MouseEvent) => {
     e.preventDefault();
+    if (placeMode) {
+      placeMode = null;
+      setHint(null);
+      refreshGrid();
+      return;
+    }
     const g = groundPoint(e.clientX, e.clientY);
     if (g) orderAt(g.x, g.z, e.shiftKey);
   });
   window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (/^[0-9]$/.test(e.key)) {
+    if (e.key === 'Escape') {
+      placeMode = null;
+      choosingAge = false;
+      setHint(null);
+      refreshGrid();
+      return;
+    }    if (/^[0-9]$/.test(e.key)) {
       const n = Number(e.key);
       if (e.ctrlKey || e.metaKey) {
         groups.set(n, [...selected]);
         e.preventDefault();
       } else {
         selected = groups.get(n).filter((id) => sim.state.units.some((u) => u.id === id));
+        selectedB = [];
         refreshSelection();
+        refreshGrid();
       }
     }
   });
@@ -490,6 +672,7 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
     if (frameN++ % 15 === 0) {
       updateMinimap(terrain, sim, cam);
       syncSettlement();
+      refreshGrid();
       if (game.winner && !bannerShown.v) {
         bannerShown.v = true;
         const banner = document.getElementById('banner');
