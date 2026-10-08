@@ -49,7 +49,7 @@ export const UNIT_HP: Record<string, number> = {
   crossbow: 80,
   manatarms: 155,
   knight: 230,
-  royalknight: 250,
+  royalknight: 190, // SPEC estágio I (era 250 THR v0 — corrigido por crítica)
   monk: 90,
   trader: 90
 };

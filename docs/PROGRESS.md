@@ -69,3 +69,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-08 (Round 11)
 - Fase 3 landed: combat (13t), defenses (13t), warriors (36t) → 202 unit em 14 arquivos, tsc 0, commit 28ddaad.
 - Próximo: integrar dano no Game (attack orders, flechas das torres, morte), guerreiros na cena, e2e combate + tag v2.
+
+## Decisões Fase 3 (do builder combat, aceitas)
+- royalknight HP 250→190 (SPEC estágio I). Cerco sem armadura plana (resistência % não modelada — VERIFICAR). scout dmg 1 literal do SPEC (confirmar). `cavalry` só como chave de counter (tipos reais: scout/knight/royalknight).
