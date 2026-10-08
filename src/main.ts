@@ -170,7 +170,9 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
     | { type: 'build'; player: number; building: string; x: number; y: number }
     | { type: 'addbuilder'; buildingId: number; unitId: number }
     | { type: 'train'; buildingId: number; unit: string; time: number }
-    | { type: 'instant'; buildingId: number };
+    | { type: 'instant'; buildingId: number }
+    | { type: 'attack'; unitId: number; targetId: number }
+    | { type: 'spawn'; unit: string; player: number; x: number; y: number };
   (window as unknown as { __game: unknown }).__game = {
     sim,
     game,
@@ -211,6 +213,14 @@ export function boot(): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraSt
         b.built = true;
         b.hp = b.maxHp;
         return { ok: true };
+      }
+      if (cmd.type === 'attack') {
+        return { ok: game.orderAttack(cmd.unitId, cmd.targetId) };
+      }
+      if (cmd.type === 'spawn') {
+        // TEST HOOK: spawn a unit (e2e only).
+        const u = sim.spawnUnit(cmd.unit, cmd.player, cmd.x, cmd.y);
+        return { ok: true, id: u.id };
       }
       return { ok: false, error: 'unknown command' };
     },
