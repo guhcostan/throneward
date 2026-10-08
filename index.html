@@ -33,6 +33,13 @@
   </div>
   <canvas id="minimap" width="220" height="220"></canvas>
   <div id="selection">No selection</div>
+  <div id="side-panel" style="position:fixed;right:12px;top:48px;width:230px;background:rgba(10,10,12,.72);padding:8px;font-size:12px;z-index:5">
+    <div><button id="btn-idle-vil">Aldeão ocioso (<span id="idle-vil-n">0</span>)</button>
+    <button id="btn-idle-mil">Tropa ociosa (<span id="idle-mil-n">0</span>)</button></div>
+    <div id="objectives" style="margin-top:6px">Objetivos: —</div>
+    <div id="score" style="margin-top:6px">Placar: —</div>
+    <div id="global-queue" style="margin-top:6px">Produção: —</div>
+  </div>
   <div id="cmd-grid">
     <button disabled title="Move (M)">Move</button><button disabled title="Attack (A)">Atk</button><button disabled title="Build (B)">Build</button><button disabled title="Gather (G)">Gather</button>
     <button disabled title="Patrol (P)">Patrol</button><button disabled title="Stop (S)">Stop</button><button disabled title="Repair (R)">Repair</button><button disabled title="Cancel (Esc)">Cancel</button>
@@ -42,7 +49,17 @@
   <div id="menu"><div id="menu-card">
     <h1>👑 THRONEWARD</h1>
     <p>Realms of Crown &amp; Hearth — RTS jogável (v0.4)</p>
-    <p>Civilização: <strong>Albion</strong> vs base neutra. Colete, construa, avance de era, treine e vença.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;font-size:14px">
+      <label>Civilização: <select id="sel-civ"><option value="albion">Albion</option><option value="gallia">Gallia</option><option value="generic">Genérica</option></select></label>
+      <label>Bots: <select id="sel-bots"><option value="0">0 (sossego)</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option></select></label>
+      <label>Dificuldade: <select id="sel-diff"><option value="easy">Fácil</option><option value="medium" selected>Médio</option><option value="hard">Difícil</option></select></label>
+      <div>Vitória:<br />
+        <label><input type="checkbox" id="win-annihilation" checked /> Aniquilação</label><br />
+        <label><input type="checkbox" id="win-landmarks" checked /> Landmarks</label><br />
+        <label><input type="checkbox" id="win-sacred" checked /> Sagrados</label><br />
+        <label><input type="checkbox" id="win-wonder" checked /> Maravilha</label>
+      </div>
+    </div>
     <button id="btn-start">Iniciar partida</button>
     <button id="btn-help">Como jogar</button>
     <div id="help">

@@ -87,7 +87,23 @@ function updateMinimap(t: TerrainData, sim: Sim, cam: CameraState): void {
   mctx.strokeRect((cam.tx + t.size / 2 - half) * sx, (cam.tz + t.size / 2 - half) * sx, half * 2 * sx, half * 2 * sx);
 }
 
-export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraState } {
+export interface SkirmishBot {
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface SkirmishConfig {
+  civ: string;
+  bots: SkirmishBot[];
+  victories: string[];
+}
+
+export const DEFAULT_SKIRMISH: SkirmishConfig = {
+  civ: 'albion',
+  bots: [{ difficulty: 'medium' }],
+  victories: ['annihilation', 'landmarks', 'sacred', 'wonder']
+};
+
+export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraState } {
   const container = document.getElementById('app')!;
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -113,7 +129,8 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
   scene.add(new THREE.HemisphereLight(0xbdd7ff, 0x3a6b35, 0.6));
 
-  const terrain = generateTerrain({ seed: SEED, size: MAP_SIZE, players: 2 });
+  const nPlayers = 1 + cfg.bots.length;
+  const terrain = generateTerrain({ seed: SEED, size: MAP_SIZE, players: nPlayers });
   scene.add(buildGround(terrain));
 
   // Forest instancing (cones — low-poly placeholder; procedural models in later phases).
@@ -133,22 +150,21 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   treeMesh.instanceMatrix.needsUpdate = true;
   scene.add(treeMesh);
 
-  const game = new Game(SEED, 2, [civ, 'generic']);
+  const game = new Game(SEED, nPlayers, [cfg.civ, ...cfg.bots.map(() => 'generic')]);
+  game.victories = new Set(cfg.victories);
   const sim = game.sim;
   const home = terrain.spawns[0];
-  const foe = terrain.spawns[1] ?? { x: terrain.size - 8, y: terrain.size - 8 };
   const W = (tx: number, ty: number): { x: number; y: number } => ({ x: tx - terrain.size / 2, y: ty - terrain.size / 2 });
-  // Jogador: 6 aldeões + batedor. Inimigo (base neutra passiva): TC + 3 arqueiros + 2 lanceiros.
+  // Câmera começa no TC do jogador.
+  cam.tx = home.x - terrain.size / 2;
+  cam.tz = home.y - terrain.size / 2;
+  applyCamera();
+  // Jogador: 6 aldeões + batedor.
   for (let i = 0; i < 6; i++) {
     const p = W(home.x + (i % 3) - 1, home.y + Math.floor(i / 3) - 1);
     sim.spawnUnit('villager', 0, p.x, p.y);
   }
   sim.spawnUnit('scout', 0, 0, 0);
-  const enemyUnits: string[] = ['archer', 'archer', 'archer', 'spearman', 'spearman'];
-  enemyUnits.forEach((t, i) => {
-    const p = W(foe.x + (i % 3) - 1, foe.y + Math.floor(i / 3));
-    sim.spawnUnit(t, 1, p.x, p.y);
-  });
   const completeInstant = (id: number): void => {
     const b = game.buildings.get(id);
     if (b) {
@@ -159,30 +175,41 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   };
   // Initial town centers (custo 0, prontos — setup de cenário).
   completeInstant(game.orderBuild(0, 'towncenter', W(home.x, home.y).x, W(home.x, home.y).y));
-  const foeTC = W(foe.x, foe.y);
-  completeInstant(game.orderBuild(1, 'towncenter', foeTC.x, foeTC.y));
 
-  // Bot inimigo (Fase 7, medium): sites a partir do terreno.
-  const woods: { kind: string; x: number; y: number }[] = [];
-  for (let dy = -10; dy <= 10 && woods.length < 3; dy++) {
-    for (let dx = -10; dx <= 10 && woods.length < 3; dx++) {
-      const tx = foe.x + dx;
-      const ty = foe.y + dy;
-      if (tx < 0 || ty < 0 || tx >= terrain.size || ty >= terrain.size) continue;
-      if (terrain.forest[ty * terrain.size + tx] === 1) {
-        woods.push({ kind: 'wood', x: tx - terrain.size / 2, y: ty - terrain.size / 2 });
+  // Bots: TC + 3 aldeões + destacamento inicial, com sites próximos ao spawn.
+  const sitesFor = (sx: number, sy: number): WorldSites => {
+    const woods: { kind: string; x: number; y: number }[] = [];
+    for (let dy = -10; dy <= 10 && woods.length < 3; dy++) {
+      for (let dx = -10; dx <= 10 && woods.length < 3; dx++) {
+        const tx = sx + dx;
+        const ty = sy + dy;
+        if (tx < 0 || ty < 0 || tx >= terrain.size || ty >= terrain.size) continue;
+        if (terrain.forest[ty * terrain.size + tx] === 1) {
+          woods.push({ kind: 'wood', x: tx - terrain.size / 2, y: ty - terrain.size / 2 });
+        }
       }
     }
-  }
-  const tw = (n: { x: number; y: number }): { x: number; y: number } => ({ x: n.x - terrain.size / 2, y: n.y - terrain.size / 2 });
-  const foeSites: WorldSites = {
-    food: terrain.berries.slice(0, 3).map((n) => ({ kind: 'berry', ...tw(n) })),
-    wood: woods,
-    gold: terrain.gold.slice(0, 2).map((n) => ({ kind: 'gold', ...tw(n) })),
-    stone: terrain.stone.slice(0, 1).map((n) => ({ kind: 'stone', ...tw(n) })),
-    dropoff: foeTC
+    const tw = (n: { x: number; y: number }): { x: number; y: number } => ({ x: n.x - terrain.size / 2, y: n.y - terrain.size / 2 });
+    return {
+      food: terrain.berries.slice(0, 3).map((n) => ({ kind: 'berry', ...tw(n) })),
+      wood: woods,
+      gold: terrain.gold.slice(0, 2).map((n) => ({ kind: 'gold', ...tw(n) })),
+      stone: terrain.stone.slice(0, 1).map((n) => ({ kind: 'stone', ...tw(n) })),
+      dropoff: { x: sx - terrain.size / 2, y: sy - terrain.size / 2 }
+    };
   };
-  const foeBot = new Bot(game, 1, 'medium', foeSites);
+  const bots: Bot[] = [];
+  cfg.bots.forEach((b, i) => {
+    const p = i + 1;
+    const sp = terrain.spawns[p] ?? { x: terrain.size - 8, y: terrain.size - 8 };
+    completeInstant(game.orderBuild(p, 'towncenter', sp.x - terrain.size / 2, sp.y - terrain.size / 2));
+    for (let v = 0; v < 3; v++) sim.spawnUnit('villager', p, sp.x - terrain.size / 2 + v, sp.y - terrain.size / 2 + 1);
+    const camp: string[] = ['archer', 'archer', 'archer', 'spearman', 'spearman'];
+    camp.forEach((t, k) => {
+      sim.spawnUnit(t, p, sp.x - terrain.size / 2 + (k % 3) - 1, sp.y - terrain.size / 2 + 2 + Math.floor(k / 3));
+    });
+    bots.push(new Bot(game, p, b.difficulty, sitesFor(sp.x, sp.y)));
+  });
 
   // Fase 6: relíquias e sagrados do terreno.
   terrain.relics.forEach((r, i) => game.addRelic(5000 + i, r.x - terrain.size / 2, r.y - terrain.size / 2));
@@ -245,6 +272,9 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
       ages: game.ages.map((a) => ({ age: a.age, advancing: a.advancing, progress: a.progress })),
       researched: game.techs.map((t) => [...t.researched]),
       winner: game.winner,
+      scores: game.stocks.map((_, p) => game.score(p)),
+      idleVil: game.idleVillagers(0),
+      idleMil: game.idleMilitary(0),
       relics: [...game.relics.relics.values()],
       sacred: {
         sites: [...game.sacred.sites.values()],
@@ -326,7 +356,7 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
         const seconds = Math.min(1200, Math.max(0, Number(cmd.seconds ?? 0)));
         const steps = Math.round(seconds * 60);
         for (let i = 0; i < steps; i++) {
-          foeBot.update(1 / 60);
+          for (const b of bots) b.update(1 / 60);
           game.tick(1 / 60);
         }
         return { ok: true, ticks: steps };
@@ -680,6 +710,39 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
     }
   });
 
+  const idleVilBtn = document.getElementById('btn-idle-vil');
+  idleVilBtn?.addEventListener('click', () => {
+    const idle = game.idleVillagers(0);
+    if (idle.length > 0) {
+      selected = [idle[0]];
+      selectedB = [];
+      const u = sim.state.units.find((v) => v.id === idle[0]);
+      if (u) {
+        cam.tx = u.x;
+        cam.tz = u.y;
+        applyCamera();
+      }
+      refreshSelection();
+      refreshGrid();
+    }
+  });
+  const idleMilBtn = document.getElementById('btn-idle-mil');
+  idleMilBtn?.addEventListener('click', () => {
+    const idle = game.idleMilitary(0);
+    if (idle.length > 0) {
+      selected = [idle[0]];
+      selectedB = [];
+      const u = sim.state.units.find((v) => v.id === idle[0]);
+      if (u) {
+        cam.tx = u.x;
+        cam.tz = u.y;
+        applyCamera();
+      }
+      refreshSelection();
+      refreshGrid();
+    }
+  });
+
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -690,7 +753,7 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   const bannerShown = { v: false };
   function frame(): void {
     game.tick(1 / 60);
-    foeBot.update(1 / 60);
+    for (const b of bots) b.update(1 / 60);
     // Vitória (aniquilação/sagrados/maravilha/landmarks) calculada no Game.tick.
     sim.state.units.forEach((u, i) => {
       dummy.position.set(u.x, groundH(terrain, u.x, u.y) + 0.7, u.y);
@@ -729,6 +792,19 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
       }
       const ageEl = document.getElementById('age');
       if (ageEl) ageEl.textContent = 'Age ' + (['I', 'II', 'III', 'IV'][game.ages[0]?.age - 1] ?? 'I');
+      // Painel lateral: ociosos, objetivos, placar, produção global.
+      setText('idle-vil-n', String(game.idleVillagers(0).length));
+      setText('idle-mil-n', String(game.idleMilitary(0).length));
+      const holders = [...game.sacred.sites.values()].map((s) => (s.owner === null ? '–' : `P${s.owner}`)).join(' ');
+      setText('objectives', `Objetivos [${[...game.victories].join('/')}] · Sagrados ${holders} ${Math.floor(game.sacred.timer)}s`);
+      const scores = game.stocks.map((_, p) => `P${p}:${game.score(p)}`).join(' ');
+      setText('score', `Placar: ${scores}`);
+      const queues: string[] = [];
+      for (const b of game.buildings.values()) {
+        if (b.player !== 0 || b.queue.length === 0) continue;
+        queues.push(`${b.type}:${b.queue.map((q) => q.unit).join(',')}`);
+      }
+      setText('global-queue', `Produção: ${queues.length > 0 ? queues.join(' | ') : '—'}`);
     }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
@@ -738,12 +814,25 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   return { sim, renderer, cam };
 }
 
-// Menu: ?test=1 inicia direto (e2e); senão o jogador clica em Iniciar.
+// Menu: ?test=1 inicia direto (e2e); senão o jogador configura o skirmish e clica em Iniciar.
 const TEST_MODE = typeof location !== 'undefined' && location.search.includes('test=1');
+
+function readSkirmish(): SkirmishConfig {
+  const civ = (document.getElementById('sel-civ') as HTMLSelectElement | null)?.value ?? 'albion';
+  const botsN = Number((document.getElementById('sel-bots') as HTMLSelectElement | null)?.value ?? 1);
+  const diff = ((document.getElementById('sel-diff') as HTMLSelectElement | null)?.value ?? 'medium') as 'easy' | 'medium' | 'hard';
+  const reasons = ['annihilation', 'landmarks', 'sacred', 'wonder'].filter((r) => {
+    const box = document.getElementById(`win-${r}`) as HTMLInputElement | null;
+    return box?.checked ?? true;
+  });
+  const bots = Array.from({ length: Math.max(0, Math.min(3, botsN)) }, () => ({ difficulty: diff }));
+  return { civ, bots, victories: reasons.length > 0 ? reasons : ['annihilation'] };
+}
+
 if (TEST_MODE) {
   const menu = document.getElementById('menu');
   if (menu) menu.style.display = 'none';
-  boot('albion');
+  boot();
 } else {
   const start = document.getElementById('btn-start');
   const help = document.getElementById('btn-help');
@@ -754,6 +843,6 @@ if (TEST_MODE) {
   start?.addEventListener('click', () => {
     const menu = document.getElementById('menu');
     if (menu) menu.style.display = 'none';
-    boot('albion');
+    boot(readSkirmish());
   }, { once: true });
 }

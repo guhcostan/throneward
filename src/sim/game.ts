@@ -98,7 +98,11 @@ const BUILD_ALIAS: Record<string, string> = {
 
 const HUNT_SOURCES = new Set(['deer', 'boar', 'sheep']);
 
-// Cerco causa dano multiplicado a prédios (THR v0 VERIFICAR).
+// Tipos militares (para ociosos e composição). THR v0.
+const MILITARY_TYPES = new Set([
+  'spearman', 'archer', 'longbow', 'crossbow', 'manatarms',
+  'knight', 'royalknight', 'arbaletrier', 'mangonel', 'trebuchet', 'bombard', 'ram'
+]);
 const SIEGE_UNITS = new Set(['ram', 'mangonel', 'trebuchet', 'bombard', 'springald']);
 const SIEGE_VS_BUILDING = 5;
 
@@ -157,6 +161,7 @@ export class Game {
   private nextTraderSeq = 0;
   private wonderTimers = new Map<number, number>();
   winner: { player: number; reason: string } | null = null;
+  victories = new Set(['annihilation', 'landmarks', 'sacred', 'wonder']);
 
   constructor(seed: number, players: number, civs?: string[]) {
     this.sim = new Sim({ seed, tickRate: SIM_TICK_RATE });
@@ -173,10 +178,59 @@ export class Game {
       this.techs.push(new TechState());
       this.civs.push(civs?.[p] ?? 'generic');
     }
+    // Condições de vitória ativas (menu skirmish). Padrão: todas.
+    this.victories = new Set(['annihilation', 'landmarks', 'sacred', 'wonder']);
   }
 
   ageOf(player: number): Age {
     return this.ages[player]?.age ?? 1;
+  }
+
+  // Pontuação THR v0 (fórmula do original VERIFICAR): unidades e prédios contam.
+  score(player: number): number {
+    let s = this.ageOf(player) * 100;
+    for (const u of this.sim.state.units) if (u.player === player && u.hp > 0) s += 10;
+    for (const b of this.buildings.values()) if (b.player === player) s += b.built ? 50 : 10;
+    for (const t of this.techs[player]?.researched ?? []) void t, (s += 20);
+    return s;
+  }
+
+  private busyBuilders(): Set<number> {
+    const out = new Set<number>();
+    for (const set of this.builderSets.values()) for (const id of set) out.add(id);
+    for (const set of this.ageBuilders.values()) for (const id of set) out.add(id);
+    return out;
+  }
+
+  // Aldeões ociosos: vivos, sem coleta, sem obra, sem ordem de movimento.
+  idleVillagers(player: number): number[] {
+    const busy = this.busyBuilders();
+    return this.sim.state.units
+      .filter(
+        (u) =>
+          u.player === player &&
+          u.type === 'villager' &&
+          u.hp > 0 &&
+          !this.gatherers.get(u.id)?.source &&
+          !busy.has(u.id) &&
+          u.queue.length === 0
+      )
+      .map((u) => u.id);
+  }
+
+  // Militares ociosos: sem alvo/cerco e sem ordem de movimento.
+  idleMilitary(player: number): number[] {
+    return this.sim.state.units
+      .filter(
+        (u) =>
+          u.player === player &&
+          u.hp > 0 &&
+          MILITARY_TYPES.has(u.type) &&
+          !this.targets.has(u.id) &&
+          !this.siegeTargets.has(u.id) &&
+          u.queue.length === 0
+      )
+      .map((u) => u.id);
   }
 
   // Registra um aldeão como coletor. Dono = player da unidade no Sim.
@@ -581,7 +635,7 @@ export class Game {
         sacredWinner: this.sacred.winner,
         wonder: wonderByPlayer
       });
-      if (res.winner !== null && res.reason !== null) {
+      if (res.winner !== null && res.reason !== null && this.victories.has(res.reason)) {
         this.winner = { player: res.winner, reason: res.reason };
       }
     }
@@ -613,7 +667,7 @@ export class Game {
     }
 
     // Aniquilação: resta 1 jogador com unidades ou prédios prontos (após 120s).
-    if (!this.winner && this.sim.state.tick > 7200 && this.stocks.length > 1) {
+    if (!this.winner && this.victories.has('annihilation') && this.sim.state.tick > 7200 && this.stocks.length > 1) {
       const alive = this.stocks.map((_, p) => p).filter(
         (p) =>
           this.sim.state.units.some((u) => u.player === p && u.hp > 0) ||
