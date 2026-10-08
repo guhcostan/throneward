@@ -26,6 +26,9 @@ test('full loop by mouse: select, build, train, advance', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/?test=1');
+  // Espera o boot completo (primeiro frame renderizado) — sem isso o clique
+  // inicial compete com a compilação de shaders no SwiftShader.
+  await page.waitForFunction(() => (window as unknown as { __gameReady?: boolean }).__gameReady === true, null, { timeout: 30000 });
 
   // 1. Select a villager by clicking it.
   let st = await snap(page);
@@ -35,9 +38,14 @@ test('full loop by mouse: select, build, train, advance', async ({ page }) => {
   await expect(page.locator('#selection')).toContainText('villager', { timeout: 5000 });
 
   // 2. Build a house through the grid, placed by clicking the ground.
+  // Posiciona perto do TC (sempre visível, longe do HUD).
   await expect(page.locator('[data-act="build-house"]')).toBeEnabled({ timeout: 5000 });
   await page.click('[data-act="build-house"]');
-  const spot = await proj(page, 6, 6);
+  const mode = await page.evaluate(() => (window as unknown as { __game: { debug: { ui: () => { placeMode: string | null } } } }).__game.debug.ui());
+  expect(mode.placeMode).toBe('house');
+  st = await snap(page);
+  const home = st.buildings.find((b) => b.type === 'towncenter')!;
+  const spot = await proj(page, home.x + 6, home.y + 2);
   await page.mouse.click(spot.x, spot.y);
   await expect
     .poll(async () => (await snap(page)).buildings.some((b) => b.type === 'house'), { timeout: 10000 })

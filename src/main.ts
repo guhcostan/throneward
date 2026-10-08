@@ -262,7 +262,15 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   (window as unknown as { __game: unknown }).__game = {
     sim,
     game,
-    debug: { project: (x: number, z: number) => project(x, z) },
+    debug: {
+      project: (x: number, z: number) => project(x, z),
+      ui: () => ({
+        placeMode: placeMode?.building ?? null,
+        choosingAge,
+        selected: [...selected],
+        selectedB: [...selectedB]
+      })
+    },
     terrain: { seed: SEED, size: MAP_SIZE, spawns: terrain.spawns },
     getState: () => JSON.parse(JSON.stringify({
       tick: sim.state.tick,
@@ -459,28 +467,25 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     return (cost.food ?? 0) <= s.food && (cost.wood ?? 0) <= s.wood && (cost.gold ?? 0) <= s.gold && (cost.stone ?? 0) <= s.stone;
   };
 
+  // Grade de comandos: coleta descritores e só reconstrói o DOM se mudar
+  // (rebuild cego engole cliques em andamento).
+  let lastGridSig = '';
   const refreshGrid = (): void => {
     const grid = document.getElementById('cmd-grid');
     if (!grid) return;
-    grid.innerHTML = '';
+    interface Desc { act: string; label: string; title: string; enabled: boolean; onClick: () => void }
+    const descs: Desc[] = [];
     const btn = (act: string, label: string, title: string, enabled: boolean, onClick: () => void): void => {
-      const b = document.createElement('button');
-      b.dataset.act = act;
-      b.textContent = label;
-      b.title = title;
-      b.disabled = !enabled;
-      b.addEventListener('click', onClick);
-      grid.appendChild(b);
+      descs.push({ act, label, title, enabled, onClick });
     };
     if (placeMode) {
       btn('cancel', 'Cancelar', 'Cancelar posicionamento (Esc)', true, () => {
         placeMode = null;
         setHint(null);
+        lastGridSig = '';
         refreshGrid();
       });
-      return;
-    }
-    if (choosingAge) {
+    } else if (choosingAge) {
       const pair = game.ageChoices(0);
       if (pair) {
         pair.forEach((lm, i) => {
@@ -500,8 +505,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         choosingAge = false;
         refreshGrid();
       });
-      return;
-    }
+    } else {
     const selUnits = sim.state.units.filter((u) => selected.includes(u.id));
     const hasVillager = selUnits.some((u) => u.type === 'villager');
     if (hasVillager) {
@@ -538,8 +542,22 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         });
       }
     }
-    if (grid.children.length === 0) {
-      btn('noop', '—', 'Selecione aldeões ou prédios', false, () => undefined);
+    } // fim do ramo normal (placeMode/choosingAge tratados acima)
+    if (descs.length === 0) {
+      descs.push({ act: 'noop', label: '—', title: 'Selecione aldeões ou prédios', enabled: false, onClick: () => undefined });
+    }
+    const sig = descs.map((d) => `${d.act}:${d.label}:${d.enabled}`).join('|');
+    if (sig === lastGridSig) return;
+    lastGridSig = sig;
+    grid.innerHTML = '';
+    for (const d of descs) {
+      const b = document.createElement('button');
+      b.dataset.act = d.act;
+      b.textContent = d.label;
+      b.title = d.title;
+      b.disabled = !d.enabled;
+      b.addEventListener('click', d.onClick);
+      grid.appendChild(b);
     }
   };
 
@@ -807,6 +825,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       setText('global-queue', `Produção: ${queues.length > 0 ? queues.join(' | ') : '—'}`);
     }
     renderer.render(scene, camera);
+    (window as unknown as { __gameReady?: boolean }).__gameReady = true;
     requestAnimationFrame(frame);
   }
   frame();
