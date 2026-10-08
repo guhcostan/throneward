@@ -156,3 +156,9 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Todas as vitórias cobertas e2e (sacred/wonder/annihilation/landmarks-destruição): 22/22 e2e, 299 unit, tag v8, CI verde 37861191664. Deploy prod.
 - Bots cercam (oficina+aríetes), finalizam prédios, teto de aldeões por dificuldade, ram liberado era III, teto pop SPEC aplicado.
 - Bot vs bot: vencedor em ~11min (landmarks), determinístico. Próximo: relatório final + polimento restante (guerreiros na cena, B-001).
+
+## Estado 2026-10-08 (Round 29)
+- Guerreiros procedurais na cena (templates por tipo+jogador, cloak tingido, raycast c/ fallback).
+  FPS 37 c/ 215u (SwiftShader; sem regressão vs cápsulas). Seleção por raycast exigiu fix no teste (unidade da frente).
+- E2E 22/22, unit 299 (23 arq), CI verde 37861701073. Deploy prod.
+- Próximo: B-001 + relatório final Pronto.
