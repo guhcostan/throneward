@@ -135,3 +135,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Fase 7 jogável: bot medium no inimigo (economia/build-order/eras/counters/ataque/defesa/sagrados), 3 dificuldades, hook tick espelha frame.
 - E2E 15/15, unit 282/282, CI verde 37851779751. Deploy prod (inimigo vivo).
 - Falta Fase 7 plena: bot vs bot com vencedor (exige ataque a prédios + landmarks com HP) + dificuldades easy/hard em jogo + menu skirmish (Fase 8).
+
+## Estado 2026-10-08 (Round 25)
+- Tag v7: bots ativos + cerco a prédios + landmarks físicos + eliminação/aniquilação no Game.
+- E2E 17/17 (siege: TC destruído + landmark criado/destruído), unit 286/286, CI verde 37852830464. Deploy prod.
+- Próximo: Fase 8 (menu skirmish + HUD completo) e polimento.
