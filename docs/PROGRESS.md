@@ -120,3 +120,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - CI VERDE (37848559647 e 37848949346: build+e2e success). E2E determinístico via hook `tick` (suite 11/11 em ~12s; antes 4min+flakes).
 - E2E isolado: porta 5216 própria, reuseExistingServer:false, guarda de identidade Throneward+versão no boot.
 - Tag v6. B-001 segue aberto. Próximo: Fase 7 (bots).
+
+## Estado 2026-10-08 (Round 22)
+- JOGÁVEL v0.4: menu (Iniciar/Como jogar) + boot por clique (?test=1 p/ e2e); seleção clique/caixa/duplo + grupos Ctrl+0-9; ordens botão direito (mover/atacar/coletar c/ shift); pan botão do meio; base inimiga passiva (TC+3 arqueiros+2 lanceiros); vitória aniquilação + banner.
+- E2E 13/13 (menu 2 + mouse select/order), CI verde 37850364645. Deploy prod com menu.
+- Falta p/ loop completo: paleta de construção/treino/era na UI (botões ainda placeholders), monges/comércio no jogo humano.
