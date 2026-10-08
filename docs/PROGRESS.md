@@ -6,7 +6,8 @@ Fase 1 — Terreno/câmera/seleção/pathfinding (rodada 1/5, builders em parale
 - pathfinding: `src/sim/pathfind.ts` + `tests/pathfind.test.ts`
 - câmera: `src/render/camera.ts` + `tests/camera.test.ts`
 - seleção: `src/sim/selection.ts` + `tests/selection.test.ts`
-Modelo fixo: opencodex/Merge/anthropic-claude-haiku-5-5. Integração (world render + __game + e2e) na próxima rodada após os 4 landarem.
+Modelo fixo: opencodex/Merge/anthropic-claude-haiku-5-5. LANDED em 2c0794c: terreno (7t), pathfind (10t), seleção (15t), sim (1t) = 33 testes, tsc 0.
+Pendente Fase 1: tests/camera.test.ts (builder f645 sem entrega até aqui) + integração world render + __game + e2e seleção/movimento → próxima rodada.
 
 ## Feito
 - 2026-10-08 R1: 3 pesquisadores Haiku 5.5 entregaram parcial (buildings 203l, economy 199l, hud 240l) com VERIFICAR; units sem entrega → THR v0 pelo Lead (58l).
