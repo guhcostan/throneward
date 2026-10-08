@@ -58,3 +58,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - E2E 6/6 (boot, move, shift-queue, build-house, gather, train). Train usa expect.poll (timing rAF headless marginal).
 - B-001 persiste (compositor headless; TC/unidades/minimapa OK).
 - Próximo: Fase 3 (combate e defesas) + tag v2.
+
+## Estado 2026-10-08 (Round 10)
+- Fase 3 aberta: combat.ts (counters/dano/armadura), defenses.ts (muralhas/portões/torres/keep), warriors.ts (meshes militares) — 3 builders em paralelo. Integração de dano + ordens de ataque na próxima.
