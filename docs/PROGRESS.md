@@ -92,3 +92,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-08 (Round 15)
 - Fase 4 landed: ages (15t, cumulativo, valida par da próxima idade, 0 builders=nulo), techs + meu teste (5t), Albion (12t) → 235 unit, tsc 0, commit d9b4ecd.
 - Próximo: integrar idades/techs/Albion no Game + __game + e2e era + tag v4. Depois Fase 5 (Gallia).
+
+## Estado 2026-10-08 (Round 16)
+- Fase 4 integrada + tag v4: ages/techs/Albion no Game (gates, desconto fazenda, castleBonus, mults), __game advance/agebuilder/research, HUD idade segue era, e2e era II 9/9 (58s c/ 5 builders; rAF headless ~60%).
+- 237 unit, tsc 0, commit 389cb7a.
+- Próximo: Fase 5 (Gallia) + deploy v4.
