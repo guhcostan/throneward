@@ -5,7 +5,7 @@ Fase 2 — Economia e construção (rodada 1/5, 3 builders em paralelo)
 - recursos: `src/sim/resources.ts` (GATHER_RATES THR v0, CARRY 10/25, dropoff, techBonus)
 - construção: `src/sim/construction.ts` (BUILDINGS THR v0, fórmula (N+2)/3, fila produção, popCap 200)
 - meshes: `src/render/buildings.ts` (procedural original, footprints, andaimes)
-Críticos v1: fidelidade LANDED (docs/critica-fidelidade-v1.md — 7 bloqueantes + 11 menores; sem visão, marcou itens p/ verificar no PNG); 6 bloqueantes corrigidos em ef29758 (seleção centralizada, grade 8 botões, y por relevo, cores por jogador, minimapa vivo c/ dots+rect, resize handler). B-001 segue aberto (preserveDrawingBuffer NÃO resolveu). Balanceamento em voo.
+Críticos v1: fidelidade LANDED + 6 bloqueantes corrigidos (ef29758). Balanceamento LANDED (docs/critica-balanceamento-v1.md — 1 bloqueante + 13 menores): bloqueante corrigido (UNIT_SPEED/UNIT_HP por tipo em sim.ts; hash agora cobre queue+resources; determinismo mantido) — 127 unit + e2e 3/3, tsc 0. Menores viram VERIFICAR da Fase 2/3.
 Fase 2 LANDED parcial: recursos (8t), construção (13t), meshes prédios (44t) → 127 unit + e2e 3/3, tsc 0.
 - terreno: `src/sim/terrain.ts` + `tests/terrain.test.ts`
 - pathfinding: `src/sim/pathfind.ts` + `tests/pathfind.test.ts`

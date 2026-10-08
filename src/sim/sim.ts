@@ -26,6 +26,34 @@ export interface GameState {
   resources: Record<Resource, number>[];
 }
 
+// Base speeds in tiles/s (THR v0 VERIFICAR — espelham SPEC §unidades).
+export const UNIT_SPEED: Record<string, number> = {
+  villager: 1.12,
+  scout: 1.62,
+  spearman: 1.25,
+  archer: 1.25,
+  crossbow: 1.25,
+  manatarms: 1.05,
+  knight: 1.55,
+  royalknight: 1.62,
+  monk: 1.12,
+  trader: 1.2
+};
+
+// Base HP per type (THR v0 VERIFICAR).
+export const UNIT_HP: Record<string, number> = {
+  villager: 50,
+  scout: 90,
+  spearman: 80,
+  archer: 70,
+  crossbow: 80,
+  manatarms: 155,
+  knight: 230,
+  royalknight: 250,
+  monk: 90,
+  trader: 90
+};
+
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -48,8 +76,9 @@ export class Sim {
     this.state = { tick: 0, seed: config.seed, units: [], resources: [{ food: 200, wood: 200, gold: 100, stone: 100 }] };
   }
 
-  spawnUnit(type: string, player: number, x: number, y: number, hp = 100): Unit {
-    const u: Unit = { id: this.nextUnitId++, type, player, x, y, hp, maxHp: hp, queue: [] };
+  spawnUnit(type: string, player: number, x: number, y: number, hp?: number): Unit {
+    const base = hp ?? UNIT_HP[type] ?? 100;
+    const u: Unit = { id: this.nextUnitId++, type, player, x, y, hp: base, maxHp: base, queue: [] };
     this.state.units.push(u);
     return u;
   }
@@ -64,11 +93,11 @@ export class Sim {
   }
 
   tickOnce(dt = 1 / 60): void {
-    // Deterministic movement: fixed speed, no floats leaking via rng here.
-    const speed = 4 * dt; // units per tick at 60Hz baseline
+    // Deterministic movement: per-type speed (tiles/s), no rng floats here.
     for (const u of this.state.units) {
       const target = u.queue[0];
       if (!target) continue;
+      const speed = (UNIT_SPEED[u.type] ?? 1.2) * dt;
       const dx = target.x - u.x;
       const dy = target.y - u.y;
       const dist = Math.hypot(dx, dy);
@@ -86,7 +115,7 @@ export class Sim {
   hash(): string {
     // Simple deterministic hash for e2e: same seed+commands => same hash.
     let h = 2166136261;
-    const s = JSON.stringify([this.state.seed, this.state.tick, this.state.units.map((u) => [u.id, u.x.toFixed(4), u.y.toFixed(4), u.hp])]);
+    const s = JSON.stringify([this.state.seed, this.state.tick, this.state.resources, this.state.units.map((u) => [u.id, u.type, u.x.toFixed(4), u.y.toFixed(4), u.hp, u.queue])]);
     for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
     return (h >>> 0).toString(16);
   }
