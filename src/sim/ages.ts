@@ -53,7 +53,7 @@ export const AGE_UNLOCKS: Record<Age, { units: string[]; buildings: string[] }> 
     buildings: [
       'towncenter', 'house', 'farm', 'mill', 'lumber', 'mining',
       'barracks', 'archerrange', 'stable', 'blacksmith', 'market', 'outpost', 'palisade',
-      'siege', 'monastery', 'university', 'tower', 'stonewall', 'keep', 'wonder',
+      'siege', 'siegeworkshop', 'monastery', 'university', 'tower', 'stonewall', 'keep', 'wonder',
     ],
   },
 };
