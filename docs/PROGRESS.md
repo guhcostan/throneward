@@ -1,7 +1,12 @@
 # PROGRESS — Throneward
 
 ## Fase atual
-Fase 0 — Pesquisa e SPEC (rodada 1/5)
+Fase 0 — Pesquisa e SPEC (rodada 1/5 CONCLUÍDA; parcial honesto — reconverge nas Fases 3/7)
+
+## Feito
+- 2026-10-08 R1: 3 pesquisadores Haiku 5.5 entregaram parcial (buildings 203l, economy 199l, hud 240l) com VERIFICAR; units sem entrega → THR v0 pelo Lead (58l).
+- 2026-10-08 R1: git init + commit d53f911 + repo criado https://github.com/guhcostan/throneward + push main OK.
+- 2026-10-08 R1: verificado tsc 0, vitest 1/1, headless OK (7bc10a4==7bc10a4≠99c960ac).
 
 ## Feito
 - 2026-10-08: Gol criado; toolchain verificado (node 26, pnpm 11, gh auth guhcostan, wrangler ausente, playwright via npx).
