@@ -34,6 +34,7 @@ export const BUILDINGS: Record<string, BuildingDef> = {
   siegeworkshop: { cost: { wood: 200 }, hp: 1500, buildTime: 45 }, // THR v0 VERIFICAR
   university: { cost: { wood: 200 }, hp: 1500, buildTime: 40 }, // THR v0 VERIFICAR
   wonder: { cost: { food: 1000, wood: 1000, gold: 1000, stone: 1000 }, hp: 5000, buildTime: 180 }, // THR v0 VERIFICAR
+  landmark: { cost: {}, hp: 3000, buildTime: 0 }, // entidade física do landmark; custo pago no advanceAge
 };
 
 export const QUEUE_MAX = 5;

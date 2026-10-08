@@ -205,3 +205,45 @@ describe('Game:treino-custo', () => {
     expect(g.stocks[0].stock.wood).toBeLessThan(1000);
   });
 });
+
+describe('Game:cerco', () => {
+  it('orderSiege recusa amigo e destrói prédio inimigo', () => {
+    const g = new Game(20, 2);
+    const b = g.orderBuild(1, 'house', 10, 10);
+    const bb = g.buildings.get(b)!;
+    bb.progress = 1;
+    bb.built = true;
+    bb.hp = bb.maxHp;
+    const ram = g.sim.spawnUnit('ram', 0, 10, 10.5);
+    expect(g.orderSiege(ram.id, ram.id)).toBe(false); // unidade não é prédio
+    const own = g.sim.spawnUnit('villager', 1, 10, 11);
+    expect(g.orderSiege(own.id, b)).toBe(false); // mesmo player
+    expect(g.orderSiege(ram.id, b)).toBe(true);
+    for (let i = 0; i < 3000 && g.buildings.has(b); i++) g.tick(DT);
+    expect(g.buildings.has(b)).toBe(false);
+  });
+});
+
+describe('Game:landmarks', () => {
+  it('avanço cria entidade landmark destruível', () => {
+    const g = new Game(21, 1);
+    g.stocks[0].stock.food = 1000;
+    g.stocks[0].stock.wood = 1000;
+    const v = g.sim.spawnUnit('villager', 0, 0, 0);
+    expect(g.advanceAge(0, 0)).toBe(true);
+    g.addAgeBuilder(0, v.id);
+    for (let i = 0; i < 20000 && g.ageOf(0) === 1; i++) g.tick(DT);
+    expect(g.ageOf(0)).toBe(2);
+    const lms = [...g.buildings.values()].filter((b) => b.type === 'landmark');
+    expect(lms).toHaveLength(1);
+    expect(lms[0].built).toBe(true);
+  });
+
+  it('eliminação declara vencedor por aniquilação', () => {
+    const g = new Game(22, 2);
+    // Player 1 sem nada; player 0 com unidade. Avança o relógio além de 120s.
+    g.sim.spawnUnit('villager', 0, 0, 0);
+    for (let i = 0; i < 7300; i++) g.tick(DT);
+    expect(g.winner).toEqual({ player: 0, reason: 'annihilation' });
+  });
+});

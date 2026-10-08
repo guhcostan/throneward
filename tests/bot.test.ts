@@ -80,3 +80,46 @@ describe('bot combat', () => {
     expect(run2(99)).toBe(run2(99));
   });
 });
+
+describe('bot vs bot', () => {
+  it('two bots clash with casualties, deterministically', () => {
+    const clash = (seed: number): { dead: number; hash: string } => {
+      const g = new Game(seed, 2);
+      const mkSites = (cx: number): WorldSites => ({
+        food: [{ kind: 'berry', x: cx + 2, y: 0 }],
+        wood: [{ kind: 'wood', x: cx - 2, y: 0 }],
+        gold: [{ kind: 'gold', x: cx + 3, y: 1 }],
+        stone: [{ kind: 'stone', x: cx - 3, y: 1 }],
+        dropoff: { x: cx, y: 0 }
+      });
+      for (const [p, cx] of [[0, 0], [1, 30]] as [number, number][]) {
+        const tc = g.orderBuild(p, 'towncenter', cx, 0);
+        const b = g.buildings.get(tc)!;
+        b.progress = 1;
+        b.built = true;
+        b.hp = b.maxHp;
+        for (let i = 0; i < 3; i++) g.sim.spawnUnit('villager', p, cx + i, 1);
+        for (let i = 0; i < 6; i++) g.sim.spawnUnit('spearman', p, cx + 10, i);
+      }
+      const bots = [new Bot(g, 0, 'easy', mkSites(0)), new Bot(g, 1, 'easy', mkSites(30))];
+      const p0spear = new Set(
+        g.sim.state.units.filter((u) => u.player === 0 && u.type === 'spearman').map((u) => u.id)
+      );
+      // Aproxima os exércitos para o choque (30 tiles é longe demais para 5 min).
+      g.sim.commandMove([...p0spear], 15, 0);
+      g.sim.commandMove(g.sim.state.units.filter((u) => u.player === 1 && u.type === 'spearman').map((u) => u.id), 15, 0);
+      const steps = Math.round(300 / DT);
+      for (let i = 0; i < steps; i++) {
+        for (const b of bots) b.update(DT);
+        g.tick(DT);
+      }
+      // O destacamento inicial foi aniquilado em combate (nascimentos não contam).
+      const survivors = g.sim.state.units.filter((u) => p0spear.has(u.id)).length;
+      return { dead: p0spear.size - survivors, hash: g.hash() };
+    };
+    const a = clash(77);
+    const b = clash(77);
+    expect(a.dead).toBeGreaterThan(0); // houve combate letal
+    expect(a.hash).toBe(b.hash); // determinístico
+  });
+});

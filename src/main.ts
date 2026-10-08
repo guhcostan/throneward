@@ -192,7 +192,9 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   scene.add(settlement.group);
   const asKind = (t: string): BuildingKind => t as BuildingKind;
   const syncSettlement = (): void => {
+    const live = new Set<number>();
     for (const b of game.buildings.values()) {
+      live.add(b.id);
       settlement.upsert({
         id: b.id,
         kind: asKind(b.type),
@@ -202,6 +204,10 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
         progress: b.progress,
         built: b.built
       });
+    }
+    // Prédios destruídos saem da cena.
+    for (const id of settlement.ids()) {
+      if (!live.has(id)) settlement.remove(id);
     }
   };
 
@@ -217,6 +223,7 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
     | { type: 'train'; buildingId: number; unit: string; time: number }
     | { type: 'instant'; buildingId: number }
     | { type: 'attack'; unitId: number; targetId: number }
+    | { type: 'siege'; unitId: number; buildingId: number }
     | { type: 'spawn'; unit: string; player: number; x: number; y: number }
     | { type: 'advance'; player: number; slot: 0 | 1 }
     | { type: 'agebuilder'; player: number; unitId: number }
@@ -278,6 +285,9 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
       }
       if (cmd.type === 'attack') {
         return { ok: game.orderAttack(cmd.unitId, cmd.targetId) };
+      }
+      if (cmd.type === 'siege') {
+        return { ok: game.orderSiege(cmd.unitId, cmd.buildingId) };
       }
       if (cmd.type === 'spawn') {
         // TEST HOOK: spawn a unit (e2e only).
@@ -681,13 +691,7 @@ export function boot(civ = 'albion'): { sim: Sim; renderer: THREE.WebGLRenderer;
   function frame(): void {
     game.tick(1 / 60);
     foeBot.update(1 / 60);
-    // Aniquilação: base inimiga destruída (unidades + prédios prontos do player 1).
-    if (!game.winner && sim.state.tick > 120) {
-      const foeAlive =
-        sim.state.units.some((u) => u.player === 1 && u.hp > 0) ||
-        [...game.buildings.values()].some((b) => b.player === 1 && b.built);
-      if (!foeAlive) game.winner = { player: 0, reason: 'annihilation' };
-    }
+    // Vitória (aniquilação/sagrados/maravilha/landmarks) calculada no Game.tick.
     sim.state.units.forEach((u, i) => {
       dummy.position.set(u.x, groundH(terrain, u.x, u.y) + 0.7, u.y);
       dummy.updateMatrix();

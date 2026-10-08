@@ -98,6 +98,10 @@ const BUILD_ALIAS: Record<string, string> = {
 
 const HUNT_SOURCES = new Set(['deer', 'boar', 'sheep']);
 
+// Cerco causa dano multiplicado a prédios (THR v0 VERIFICAR).
+const SIEGE_UNITS = new Set(['ram', 'mangonel', 'trebuchet', 'bombard', 'springald']);
+const SIEGE_VS_BUILDING = 5;
+
 function gatherGroup(kind: string): GatherGroup {
   if (HUNT_SOURCES.has(kind)) return 'hunt';
   if (kind === 'wood') return 'wood';
@@ -130,6 +134,11 @@ export class Game {
   // Combate: alvo por atacante + cooldown restante por atacante.
   private targets = new Map<number, number>();
   private cooldowns = new Map<number, number>();
+  // Cerco a prédios: atacante -> buildingId.
+  private siegeTargets = new Map<number, number>();
+  // Landmarks físicos por jogador (entidades colocadas ao concluir cada avanço).
+  landmarks = new Map<number, number[]>();
+  private advancedEver = new Set<number>();
   // Defesas.
   towers = new Map<number, Tower>();
   walls = new Map<number, Wall>();
@@ -287,6 +296,13 @@ export class Game {
     return true;
   }
 
+  private homeOf(p: number): { x: number; y: number } {
+    for (const b of this.buildings.values()) {
+      if (b.player === p && b.type === 'towncenter') return { x: b.x, y: b.y };
+    }
+    return { x: 0, y: 0 };
+  }
+
   private castleStructures(): PlacedStructure[] {    const out: PlacedStructure[] = [];
     for (const b of this.buildings.values()) {
       if (!b.built) continue;
@@ -308,6 +324,14 @@ export class Game {
     return true;
   }
 
+  // Ordem de cerco a prédio inimigo (qualquer unidade; cerco tem bônus).
+  orderSiege(unitId: number, buildingId: number): boolean {
+    const a = this.sim.state.units.find((u) => u.id === unitId);
+    const b = this.buildings.get(buildingId);
+    if (!a || !b || a.player === b.player) return false;
+    this.siegeTargets.set(unitId, buildingId);
+    return true;
+  }
   // Torre defensiva (custo THR v0 VERIFICAR em TOWER_DEFS). Retorna id ou -1.
   placeTower(player: number, kind: 'outpost' | 'tower' | 'keep', x: number, y: number): number {
     const stock = this.stocks[player];
@@ -409,7 +433,18 @@ export class Game {
     for (let p = 0; p < this.ages.length; p++) {
       const st = this.ages[p];
       setBuilders(st, this.ageBuilders.get(p)?.size ?? 0);
-      advanceTick(st, dt);
+      const reached = advanceTick(st, dt);
+      if (reached !== null) {
+        // Landmark físico ao lado do TC (entidade destruível — vitória por landmarks).
+        this.advancedEver.add(p);
+        const home = this.homeOf(p);
+        const id = FIRST_BUILDING_ID + this.nextBuildingSeq;
+        this.nextBuildingSeq++;
+        this.buildings.set(id, placeBuilding(id, 'landmark', p, home.x + 4, home.y));
+        const list = this.landmarks.get(p) ?? [];
+        list.push(id);
+        this.landmarks.set(p, list);
+      }
       techTick(this.techs[p], dt);
     }
 
@@ -476,6 +511,23 @@ export class Game {
       }
     }
 
+    // Cerco: unidades atacam prédios inimigos (dano com bônus de cerco, sem armadura).
+    for (const attackerId of sortedKeys(this.siegeTargets)) {
+      const buildingId = this.siegeTargets.get(attackerId);
+      if (buildingId === undefined) continue;
+      const a = this.sim.state.units.find((u) => u.id === attackerId);
+      const b = this.buildings.get(buildingId);
+      if (!a || a.hp <= 0 || !b) {
+        this.siegeTargets.delete(attackerId);
+        continue;
+      }
+      const stats = UNIT_COMBAT[a.type];
+      const reach = stats && stats.range > 1 ? stats.range : 1.5;
+      if (Math.hypot(b.x - a.x, b.y - a.y) > reach) continue;
+      const dmg = dealDamage((stats?.damage ?? 5) * (SIEGE_UNITS.has(a.type) ? SIEGE_VS_BUILDING : 1), 0);
+      b.hp -= dmg;
+    }
+
     // Fase 6: renda de relíquias (por jogador dono do mosteiro).
     for (const r of this.relics.relics.values()) {
       if (r.garrisoned === null) continue;
@@ -516,10 +568,13 @@ export class Game {
         const cur = wonderByPlayer.get(b.player);
         if (cur) wonderByPlayer.set(b.player, { built: true, timer: Math.max(cur.timer, t) });
       }
-      // DÍVIDA: vitória por landmarks aguarda entidades de landmark com HP.
-      // Até lá, todos contam como vivos (vitória por essa via desabilitada).
+      // Landmarks: vivos se alguma entidade existir; ramo ativo só se todos avançaram.
       const landmarksAlive = new Map<number, boolean>();
-      for (let p = 0; p < this.stocks.length; p++) landmarksAlive.set(p, true);
+      const allAdvanced = this.advancedEver.size === this.stocks.length;
+      for (let p = 0; p < this.stocks.length; p++) {
+        const ids = this.landmarks.get(p) ?? [];
+        landmarksAlive.set(p, allAdvanced && ids.some((id) => this.buildings.has(id)));
+      }
       const res = checkVictory({
         players: this.stocks.map((_, p) => p),
         landmarksAlive,
@@ -540,10 +595,31 @@ export class Game {
         this.gatherOwner.delete(id);
         this.targets.delete(id);
         this.cooldowns.delete(id);
+        this.siegeTargets.delete(id);
       }
       for (const [attacker, target] of this.targets) {
         if (dead.has(target)) this.targets.delete(attacker);
       }
+    }
+    // Prédios destruídos saem do mapa (limpa cercos e timers de maravilha).
+    for (const [id] of this.buildings) {
+      const b = this.buildings.get(id);
+      if (!b || b.hp > 0) continue;
+      this.buildings.delete(id);
+      this.wonderTimers.delete(id);
+      for (const [attacker, target] of this.siegeTargets) {
+        if (target === id) this.siegeTargets.delete(attacker);
+      }
+    }
+
+    // Aniquilação: resta 1 jogador com unidades ou prédios prontos (após 120s).
+    if (!this.winner && this.sim.state.tick > 7200 && this.stocks.length > 1) {
+      const alive = this.stocks.map((_, p) => p).filter(
+        (p) =>
+          this.sim.state.units.some((u) => u.player === p && u.hp > 0) ||
+          [...this.buildings.values()].some((b) => b.player === p && b.built)
+      );
+      if (alive.length === 1) this.winner = { player: alive[0], reason: 'annihilation' };
     }
 
     return { trained };
