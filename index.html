@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Throneward — Realms of Crown & Hearth</title>
+  <style>
+    html,body{margin:0;height:100%;background:#0e0f12;color:#e8e6df;font-family:system-ui,sans-serif}
+    #app{position:fixed;inset:0}
+    #hud-top{position:fixed;top:0;left:0;right:0;display:flex;gap:12px;padding:8px 12px;background:rgba(10,10,12,.72);z-index:5}
+    #minimap{position:fixed;left:12px;bottom:12px;width:220px;height:220px;background:#14161a;border:1px solid #444;z-index:5}
+    #cmd-grid{position:fixed;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(4,56px);gap:6px;z-index:5}
+    #cmd-grid button{height:56px}
+    #selection{position:fixed;left:244px;bottom:12px;max-width:40vw;background:rgba(10,10,12,.72);padding:8px;z-index:5}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="hud-top">
+    <span>👑 Throneward</span>
+    <span id="res-food">Food 0</span><span id="res-wood">Wood 0</span>
+    <span id="res-gold">Gold 0</span><span id="res-stone">Stone 0</span>
+    <span id="res-pop">Pop 0/0</span><span id="age">Age I</span>
+  </div>
+  <canvas id="minimap" width="220" height="220"></canvas>
+  <div id="selection">No selection</div>
+  <div id="cmd-grid"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

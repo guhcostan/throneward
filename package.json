@@ -1,0 +1,29 @@
+{
+  "name": "throneward",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Throneward — Realms of Crown & Hearth. Browser RTS with original art/audio, mechanics mirroring AoE IV. Original work only.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:headless": "tsx tests/headless-sim.ts",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.0.0",
+    "@types/three": "^0.186.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  }
+}
