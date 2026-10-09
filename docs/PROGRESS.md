@@ -227,3 +227,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 48)
 - Bot comercia: mercado na build order, 2º mercado distante, mercador treinado, rota ativa.
 - 316 unit, CI triplo verde 37877239371. Deploy prod.
+
+## Estado 2026-10-09 (Round 49)
+- Bot treina monges (mosteiro era III) e disputa sagrados. CI triplo verde 37877993345. Deploy prod.
