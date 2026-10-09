@@ -61,7 +61,9 @@ describe('bot economy', () => {
 describe('bot combat', () => {
   it('army engages and kills nearby enemies', () => {
     const { g, bot } = setup(13);
-    for (let i = 0; i < 12; i++) g.sim.spawnUnit('spearman', 0, 10 + i * 0.5, 0);
+    // Corpo a corpo colado (alcance ≤1.0): com inimigos que revidam, parado à
+    // distância o ranged venceria — o cenário precisa do contato, como num jogo real.
+    for (let i = 0; i < 12; i++) g.sim.spawnUnit('spearman', 0, 12 + (i % 4) * 0.4, 0.3 + Math.floor(i / 4) * 0.4);
     for (let i = 0; i < 4; i++) g.sim.spawnUnit('archer', 1, 12 + i * 0.5, 1);
     const foes0 = g.sim.state.units.filter((u) => u.player === 1).length;
     run(g, bot, 120);

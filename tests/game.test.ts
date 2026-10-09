@@ -347,3 +347,17 @@ describe('Game:reparo', () => {
     expect(g.orderRepair(sp.id, tc)).toBe(false);
   });
 });
+
+describe('Game:auto-defesa', () => {
+  it('tropa ociosa revida sozinha; aldeão apanha sem revidar', () => {
+    const g = new Game(60, 2);
+    const sp = g.sim.spawnUnit('spearman', 0, 0, 0);
+    const foe = g.sim.spawnUnit('villager', 1, 0.5, 0);
+    const vil = g.sim.spawnUnit('villager', 0, 5, 5);
+    const foe2 = g.sim.spawnUnit('spearman', 1, 5.5, 5);
+    for (let i = 0; i < 120; i++) g.tick(DT);
+    expect(foe.hp).toBeLessThan(50); // lanceiro revidou sem ordem
+    expect(foe2.hp).toBe(80); // aldeão nunca revidou
+    expect(vil.hp).toBeLessThan(50); // ...e apanhou
+  });
+});

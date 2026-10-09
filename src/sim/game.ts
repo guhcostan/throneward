@@ -746,6 +746,27 @@ export class Game {
       this.lastPos.set(u.id, { x: u.x, y: u.y });
     }
 
+    // Auto-defesa: tropa ociosa (sem alvo, sem fila, sem coleta) revida o inimigo
+    // mais próximo num raio de alcance+3. Aldeões, monges e mercadores não revidam.
+    const IDLE_COMBAT = new Set(['spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'scout']);
+    for (const u of this.sim.state.units) {
+      if (u.hp <= 0 || !IDLE_COMBAT.has(u.type)) continue;
+      if (this.targets.has(u.id) || u.queue.length > 0 || this.gatherers.has(u.id)) continue;
+      const s = UNIT_COMBAT[u.type];
+      const radius = (s?.range ?? 0) > 1 ? s.range + 3 : 4;
+      let best: number | null = null;
+      let bd = Infinity;
+      for (const f of this.sim.state.units) {
+        if (f.player === u.player || f.hp <= 0) continue;
+        const d = Math.hypot(f.x - u.x, f.y - u.y);
+        if (d <= radius && d < bd) {
+          bd = d;
+          best = f.id;
+        }
+      }
+      if (best !== null) this.targets.set(u.id, best);
+    }
+
     // Combate entre unidades (ordens de ataque).
     for (const attackerId of sortedKeys(this.targets)) {
       const targetId = this.targets.get(attackerId);
