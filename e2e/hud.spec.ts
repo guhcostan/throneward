@@ -12,7 +12,7 @@ test('minimap pixels change as units move', async ({ page }) => {
   const shot = (): Promise<string> =>
     page.evaluate(() => (document.getElementById('minimap') as HTMLCanvasElement).toDataURL());
   const before = await shot();
-  // Move todas as unidades do jogador para longe via __game e deixa renderizar.
+  // Move todas as unidades do jogador para longe via __game.
   await page.evaluate(() => {
     const g = window as unknown as { __game: {
       getState: () => { units: { id: number; player: number }[] };
@@ -21,9 +21,8 @@ test('minimap pixels change as units move', async ({ page }) => {
     const ids = g.__game.getState().units.filter((u) => u.player === 0).map((u) => u.id);
     g.__game.command({ type: 'move', unitIds: ids, x: 20, y: 20 });
   });
-  await page.waitForTimeout(2500);
-  const after = await shot();
-  expect(after).not.toBe(before);
+  // O minimapa atualiza a cada 60 frames (~1s a 60fps, mais sob carga): poll, não sleep.
+  await expect.poll(async () => await shot(), { timeout: 30000 }).not.toBe(before);
   expect(errors).toEqual([]);
 });
 
