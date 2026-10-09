@@ -303,3 +303,29 @@ describe('Game:muralha', () => {
     expect(ar.elev).toBe(0); // nova ordem desmonta
   });
 });
+
+describe('Game:esgotamento', () => {
+  it('fonte esgota e coletor migra para a próxima', () => {
+    const g = new Game(40, 1);
+    g.seedNodes([
+      { kind: 'berry', x: 5, y: 5, amount: 12 },
+      { kind: 'berry', x: 50, y: 50, amount: 1000 }
+    ]);
+    const v = g.sim.spawnUnit('villager', 0, 5, 5);
+    expect(g.assignGather(v.id, { kind: 'berry', x: 5, y: 5 }, { x: 0, y: 0 })).toBe(true);
+    for (let i = 0; i < 3000; i++) g.tick(DT);
+    // 12 unidades saíram da primeira fonte e o coletor migrou para a segunda.
+    expect(g.nodeLeft('berry', 5, 5)).toBe(0);
+    expect(g.gatherers.get(v.id)?.source).toEqual({ kind: 'berry', x: 50, y: 50 });
+  });
+
+  it('sem fonte restante, coletor fica ocioso sem travar', () => {
+    const g = new Game(41, 1);
+    g.seedNodes([{ kind: 'berry', x: 5, y: 5, amount: 5 }]);
+    const v = g.sim.spawnUnit('villager', 0, 5, 5);
+    g.assignGather(v.id, { kind: 'berry', x: 5, y: 5 }, { x: 0, y: 0 });
+    for (let i = 0; i < 3000; i++) g.tick(DT);
+    expect(g.nodeLeft('berry', 5, 5)).toBe(0);
+    expect(g.gatherers.get(v.id)?.source).toBeNull();
+  });
+});

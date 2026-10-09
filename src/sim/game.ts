@@ -166,6 +166,8 @@ export class Game {
   // Fase 6: relíquias, sagrados, comércio, maravilha e vencedor.
   relics = new RelicState();
   sacred = new SacredState();
+  // Estoque das fontes (esgotamento; fazendas são infinitas e ficam fora).
+  private nodes = new Map<string, number>();
   // Nevoeiro de guerra (inicializado via initFog com o tamanho do mapa).
   fog: Fog | null = null;
   // Grade de visão: tiles de furtividade = 2 (bloqueiam visão além de 2 tiles).
@@ -483,6 +485,39 @@ export class Game {
     return id;
   }
 
+  // ---- Economia: esgotamento ----
+
+  /** Registra fontes com estoque (chamado no setup com os dados do terreno). */
+  seedNodes(nodes: { kind: string; x: number; y: number; amount: number }[]): void {
+    for (const n of nodes) this.nodes.set(nodeKey(n.kind, n.x, n.y), n.amount);
+  }
+
+  /** Estoque restante de uma fonte (undefined = infinita/desconhecida). */
+  nodeLeft(kind: string, x: number, y: number): number | undefined {
+    return this.nodes.get(nodeKey(kind, x, y));
+  }
+
+  /** Fonte mais próxima do tipo com estoque (para realocar esgotados). */
+  nearestNode(kind: string, x: number, y: number): { kind: string; x: number; y: number } | null {
+    let best: { kind: string; x: number; y: number } | null = null;
+    let bd = Infinity;
+    for (const [key, amount] of this.nodes) {
+      if (amount <= 0) continue;
+      const sep = key.indexOf(':');
+      const k = key.slice(0, sep);
+      if (k !== kind) continue;
+      const rest = key.slice(sep + 1).split(',');
+      const nx = Number(rest[0]);
+      const ny = Number(rest[1]);
+      const d = Math.hypot(nx - x, ny - y);
+      if (d < bd) {
+        bd = d;
+        best = { kind: k, x: nx, y: ny };
+      }
+    }
+    return best;
+  }
+
   // ---- Fase 6: relíquias ----
 
   addRelic(id: number, x: number, y: number): void {
@@ -631,11 +666,40 @@ export class Game {
       const g = this.gatherers.get(id);
       const player = this.gatherOwner.get(id);
       if (!g || player === undefined || !g.source) continue;
+      // Esgotamento: fazendas são infinitas; demais fontes têm estoque.
+      if (g.source.kind !== 'farm') {
+        const key = nodeKey(g.source.kind, g.source.x, g.source.y);
+        const left = this.nodes.get(key);
+        if (left !== undefined && left <= 0) {
+          // Procura outra fonte do mesmo tipo com estoque; senão, ocioso.
+          const alt = this.nearestNode(g.source.kind, g.source.x, g.source.y);
+          if (alt) {
+            g.source = { kind: alt.kind, x: alt.x, y: alt.y };
+            g.amount = 0;
+            g.carrying = null;
+          } else {
+            g.source = null;
+            g.amount = 0;
+            g.carrying = null;
+          }
+          continue;
+        }
+      }
       const mult = gatherMult(this.techs[player], gatherGroup(g.source.kind));
       const { delivered } = gatherTick(g, dt * mult, true);
       for (const res of Object.keys(delivered) as (keyof typeof delivered)[]) {
         const n = delivered[res];
-        if (n !== undefined && n > 0) addStock(this.stocks[player], res, n);
+        if (n !== undefined && n > 0) {
+          const key = nodeKey(g.source.kind, g.source.x, g.source.y);
+          const left = this.nodes.get(key);
+          if (left === undefined || g.source.kind === 'farm') {
+            addStock(this.stocks[player], res, n);
+          } else {
+            const actual = Math.min(n, left);
+            this.nodes.set(key, left - actual);
+            if (actual > 0) addStock(this.stocks[player], res, actual);
+          }
+        }
       }
     }
 
@@ -896,5 +960,9 @@ export class Game {
 
 function sortedKeys<V>(m: Map<number, V>): number[] {
   return [...m.keys()].sort((a, b) => a - b);
+}
+
+function nodeKey(kind: string, x: number, y: number): string {
+  return `${kind}:${x},${y}`;
 }
 

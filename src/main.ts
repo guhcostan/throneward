@@ -244,6 +244,15 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   // Fase 6: relíquias e sagrados do terreno.
   terrain.relics.forEach((r, i) => game.addRelic(5000 + i, r.x - terrain.size / 2, r.y - terrain.size / 2));
   terrain.sacred.forEach((s, i) => game.addSacredSite(i + 1, s.x - terrain.size / 2, s.y - terrain.size / 2));
+  // Estoques para esgotamento (caça com valores THR v0 VERIFICAR; fazenda infinita).
+  game.seedNodes([
+    ...terrain.gold.map((n) => ({ kind: 'gold', x: n.x - terrain.size / 2, y: n.y - terrain.size / 2, amount: n.amount })),
+    ...terrain.stone.map((n) => ({ kind: 'stone', x: n.x - terrain.size / 2, y: n.y - terrain.size / 2, amount: n.amount })),
+    ...terrain.berries.map((n) => ({ kind: 'berry', x: n.x - terrain.size / 2, y: n.y - terrain.size / 2, amount: n.amount })),
+    ...terrain.sheep.map((n) => ({ kind: 'sheep', x: n.x - terrain.size / 2, y: n.y - terrain.size / 2, amount: 100 })),
+    ...terrain.deer.map((n) => ({ kind: 'deer', x: n.x - terrain.size / 2, y: n.y - terrain.size / 2, amount: 250 })),
+    ...terrain.boar.map((n) => ({ kind: 'boar', x: n.x - terrain.size / 2, y: n.y - terrain.size / 2, amount: 300 }))
+  ]);
 
   const settlement = new Settlement();
   scene.add(settlement.group);
