@@ -12,6 +12,7 @@ function make(over: Partial<Fighter> & Pick<Fighter, 'type'>): Fighter {
     hp: stats.hp,
     maxHp: stats.hp,
     range: stats.range,
+    minRange: stats.minRange,
     damage: stats.damage,
     meleeArmor: stats.melee,
     rangedArmor: stats.ranged,
