@@ -266,17 +266,13 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   };
 
   // Grade de bloqueio (terreno + muralhas + prédios) para o A* — refeita quando muda.
+  // Portões próprios ficam abertos (grades por jogador no Game).
   let blockedSig = '';
   const syncBlocked = (): void => {
-    const sig = `${game.walls.size}:${[...game.walls.values()].map((w) => w.hp).join(',')}|${[...game.buildings.values()].map((b) => b.id).join(',')}`;
+    const sig = `${game.walls.size}:${[...game.walls.values()].map((w) => `${w.hp}${w.gate ? 'g' : ''}`).join(',')}|${[...game.buildings.values()].map((b) => b.id).join(',')}`;
     if (sig === blockedSig) return;
     blockedSig = sig;
     const grid = blockedGrid(terrain);
-    for (const t of game.wallTilesAll()) {
-      if (t.x >= 0 && t.y >= 0 && t.x < terrain.size && t.y < terrain.size) {
-        grid[t.y * terrain.size + t.x] = 1;
-      }
-    }
     for (const b of game.buildings.values()) {
       let w = 2;
       let h = 2;
@@ -300,7 +296,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         }
       }
     }
-    game.setBlockedGrid(grid, terrain.size);
+    game.setBlockedGrids(grid, terrain.size);
   };
   const syncSettlement = (): void => {
     const live = new Set<number>();
@@ -373,6 +369,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     | { type: 'instant'; buildingId: number }
     | { type: 'attack'; unitId: number; targetId: number }
     | { type: 'siege'; unitId: number; buildingId: number }
+    | { type: 'gate'; player: number; wallId: number; gate: boolean }
     | { type: 'spawn'; unit: string; player: number; x: number; y: number }
     | { type: 'advance'; player: number; slot: 0 | 1 }
     | { type: 'agebuilder'; player: number; unitId: number }
@@ -453,6 +450,9 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       }
       if (cmd.type === 'siege') {
         return { ok: game.orderSiege(cmd.unitId, cmd.buildingId) };
+      }
+      if (cmd.type === 'gate') {
+        return { ok: game.setGate(cmd.wallId, cmd.player, cmd.gate) };
       }
       if (cmd.type === 'spawn') {
         // TEST HOOK: spawn a unit (e2e only).
@@ -581,6 +581,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   let selectedB: number[] = [];
   let placeMode: { building: string; from?: { x: number; y: number } } | null = null;
   let routeMode: { traderId: number; from?: number } | null = null;
+  let gateMode = false;
   let choosingAge = false;
   const groups = new ControlGroups();
   let lastClick = { t: 0, x: 0, y: 0 };
@@ -717,6 +718,13 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         lastGridSig = '';
         refreshGrid();
       });
+    } else if (gateMode) {
+      btn('cancel', 'Cancelar', 'Cancelar portão (Esc)', true, () => {
+        gateMode = false;
+        setHint(null);
+        lastGridSig = '';
+        refreshGrid();
+      });
     } else if (choosingAge) {
       const pair = game.ageChoices(0);
       if (pair) {
@@ -771,6 +779,17 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         routeMode = null;
         refreshGrid();
       });
+      const ownWalls = [...game.walls.values()].some((w) => w.player === 0);
+      if (ownWalls) {
+        btn('gate', 'Portão', 'Alternar portão na muralha (clique nela)', true, () => {
+          gateMode = true;
+          placeMode = null;
+          routeMode = null;
+          choosingAge = false;
+          setHint('Portão: clique na sua muralha (Esc cancela)');
+          refreshGrid();
+        });
+      }
     }
     const selTraders = selUnits.filter((u) => u.type === 'trader');
     if (selTraders.length > 0) {
@@ -915,6 +934,31 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     const isDouble = now - lastClick.t < 400 && Math.hypot(e.clientX - lastClick.x, e.clientY - lastClick.y) < 8;
     lastClick = { t: now, x: e.clientX, y: e.clientY };
     if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 6) {
+      // Portão: alterna a muralha própria mais próxima do clique (raio 3).
+      if (gateMode) {
+        let best: { id: number; d: number } | null = null;
+        for (const w of game.walls.values()) {
+          if (w.player !== 0) continue;
+          const tiles = game.wallTilesOf(w.id);
+          for (const t of tiles) {
+            const wx = t.x - terrain.size / 2;
+            const wz = t.y - terrain.size / 2;
+            const d = Math.hypot(wx - g.x, wz - g.z);
+            if (d <= 3 && (!best || d < best.d)) best = { id: w.id, d };
+          }
+        }
+        if (best) {
+          const w = game.walls.get(best.id)!;
+          game.setGate(best.id, 0, !w.gate);
+          setHint(w.gate ? 'Portão fechado' : 'Portão aberto');
+          sfx.order();
+        } else {
+          setHint('Sem muralha sua por aqui (Esc cancela)');
+        }
+        gateMode = false;
+        refreshGrid();
+        return;
+      }
       // Rota de comércio: dois cliques em mercados próprios construídos.
       if (routeMode) {
         const market = [...game.buildings.values()].find(
@@ -1020,9 +1064,10 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   });
   el.addEventListener('contextmenu', (e: MouseEvent) => {
     e.preventDefault();
-    if (placeMode || routeMode) {
+    if (placeMode || routeMode || gateMode) {
       placeMode = null;
       routeMode = null;
+      gateMode = false;
       setHint(null);
       refreshGrid();
       return;
@@ -1034,6 +1079,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     if (e.key === 'Escape') {
       placeMode = null;
       routeMode = null;
+      gateMode = false;
       choosingAge = false;
       setHint(null);
       lastGridSig = '';

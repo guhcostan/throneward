@@ -804,6 +804,39 @@ export class Game {
     this.sim.setBlocked(grid, size);
   }
 
+  // Grades por jogador a partir da base (terreno): portões próprios abertos.
+  setBlockedGrids(base: Uint8Array, size: number): void {
+    const walls = [...this.walls.values()];
+    for (let p = 0; p < this.stocks.length; p++) {
+      const grid = new Uint8Array(base);
+      const ownGates = new Set<number>();
+      for (const w of walls) {
+        if (w.player === p && w.gate) {
+          for (const t of this.wallTilesOf(w.id)) ownGates.add(t.y * size + t.x);
+        }
+      }
+      for (const t of this.wallTilesAll()) {
+        if (t.x < 0 || t.y < 0 || t.x >= size || t.y >= size) continue;
+        if (ownGates.has(t.y * size + t.x)) continue;
+        grid[t.y * size + t.x] = 1;
+      }
+      this.sim.setBlocked(grid, size, p);
+    }
+  }
+
+  // Tiles de uma muralha (ids de tile já em coords de tile).
+  wallTilesOf(wallId: number): { x: number; y: number }[] {
+    return this.wallTilesAll().filter((t) => t.wall === wallId);
+  }
+
+  // Marca/desmarca portão numa muralha própria. Retorna false se inválido.
+  setGate(wallId: number, player: number, gate: boolean): boolean {
+    const w = this.walls.get(wallId);
+    if (!w || w.player !== player) return false;
+    w.gate = gate;
+    return true;
+  }
+
   // População usada por jogador: unidades vivas + itens na fila de treino.
   // Prédios em construção não contam.
   popUsed(): number[] {

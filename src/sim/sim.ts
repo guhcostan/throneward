@@ -78,15 +78,19 @@ export class Sim {
   private rng: () => number;
   private nextUnitId = 1;
   // Grade de bloqueio opcional (A*). Tiles size×size, mundo centrado (tile = round(x + size/2)).
+  // Por jogador (portões próprios liberam); grade global como fallback.
   private blocked: { grid: Uint8Array; size: number } | null = null;
+  private blockedBy = new Map<number, { grid: Uint8Array; size: number }>();
 
   // Define a grade de bloqueio (chamado pelo integrador com terreno + muralhas).
-  setBlocked(grid: Uint8Array, size: number): void {
-    this.blocked = { grid, size };
+  setBlocked(grid: Uint8Array, size: number, player?: number): void {
+    if (player === undefined) this.blocked = { grid, size };
+    else this.blockedBy.set(player, { grid, size });
   }
 
   clearBlocked(): void {
     this.blocked = null;
+    this.blockedBy.clear();
   }
 
   constructor(config: SimConfig) {
@@ -107,15 +111,16 @@ export class Sim {
       const u = this.state.units.find((v) => v.id === id);
       if (!u) continue;
       if (!queueShift) u.queue = [];
-      const routed = this.route(u.x, u.y, x, y);
+      const routed = this.route(u.player, u.x, u.y, x, y);
       for (const p of routed) u.queue.push(p);
     }
   }
 
   // Roteia por A* quando há grade de bloqueio; senão (ou sem caminho), linha reta.
-  private route(x0: number, y0: number, x1: number, y1: number): { x: number; y: number }[] {
-    if (!this.blocked) return [{ x: x1, y: y1 }];
-    const { grid, size } = this.blocked;
+  private route(player: number, x0: number, y0: number, x1: number, y1: number): { x: number; y: number }[] {
+    const blocked = this.blockedBy.get(player) ?? this.blocked;
+    if (!blocked) return [{ x: x1, y: y1 }];
+    const { grid, size } = blocked;
     const off = size / 2;
     const sx = Math.round(x0 + off);
     const sy = Math.round(y0 + off);
