@@ -963,12 +963,12 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     for (const b of bots) b.update(1 / 60);
     // Vitória (aniquilação/sagrados/maravilha/landmarks) calculada no Game.tick.
     syncUnits();
-    if (frameN++ % 15 === 0) {
-      // Minimapa e véu a cada 1s (encode é caro; 4x/s não agrega).
-      if (frameN % 60 === 0) {
-        updateMinimap(terrain, sim, cam, (u) => u.player === 0 || game.isSeenByUnit(u, 0));
-        updateShroud();
-      }
+    // Minimapa e véu a cada 1s (encode é caro); resto a cada 0,25s.
+    if (frameN % 60 === 0) {
+      updateMinimap(terrain, sim, cam, (u) => u.player === 0 || game.isSeenByUnit(u, 0));
+      updateShroud();
+    }
+    if (frameN % 15 === 0) {
       syncSettlement();
       refreshGrid();
       if (game.winner && !bannerShown.v) {
@@ -1023,6 +1023,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     }
     renderer.render(scene, camera);
     (window as unknown as { __gameReady?: boolean }).__gameReady = true;
+    frameN++;
     requestAnimationFrame(frame);
   }
   frame();
