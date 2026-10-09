@@ -183,3 +183,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 34)
 - Carga do cavaleiro real: +3 (knightChargeBonus) no 1º golpe após correr 3+ tiles; rastreio p/ todas as unidades; teste 12-vs-9.
 - 306 unit, CI triplo verde 37865338610. Deploy prod.
+
+## Estado 2026-10-09 (Round 38)
+- Críticas v9 aplicadas: painel HP/stats/fila, aldeões por recurso, eras Dark/Feudal, menu sem v0.4, screenshot prod no CI.
+- Balance v9: cerco com HP/custo, techs +1, carga com tech, velocidades, bombardeiro, HDA por era completa.
+- Deploy pós-correções; CI revalida prod.
