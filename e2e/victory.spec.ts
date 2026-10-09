@@ -116,19 +116,11 @@ test('annihilation: destroying the enemy base wins', async ({ page }) => {
         (u) => u.player === 0 && u.hp > 0 && u.type !== 'villager' && u.type !== 'ram'
       );
       for (const foe of foes) {
-        let best = army[0];
-        let bd = Infinity;
+        // Sem perseguição automática e com aldeões que agora andam: converge
+        // todo o exército sobre cada sobrevivente, com posições frescas.
         for (const m of army) {
-          const d = Math.hypot(m.x - foe.x, m.y - foe.y);
-          if (d < bd) {
-            bd = d;
-            best = m;
-          }
-        }
-        // Sem perseguição automática: anda até o alvejante e ataca ao chegar.
-        if (best) {
-          g.__game.command({ type: 'move', unitIds: [best.id], x: foe.x, y: foe.y });
-          g.__game.command({ type: 'attack', unitId: best.id, targetId: foe.id });
+          g.__game.command({ type: 'move', unitIds: [m.id], x: foe.x, y: foe.y });
+          g.__game.command({ type: 'attack', unitId: m.id, targetId: foe.id });
         }
       }
     });

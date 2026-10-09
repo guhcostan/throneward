@@ -1,14 +1,12 @@
 // Fachada que liga Sim + recursos + construção. Pura lógica: sem DOM, sem Three.js, headless.
 // Determinística: sem Math.random; iteração sempre em ordem crescente de id.
 //
-// SIMPLIFICAÇÃO (documentada): não há caminhada real até o depósito. Um gatherer entrega
-// automaticamente ao stock do dono assim que completa um ciclo (amount atinge a capacidade),
-// via gatherTick(g, dt, atDropoff=true). O movimento do aldeão continua sendo feito pelo Sim
-// (sim.commandMove), mas não afeta a entrega.
+// Economia: ciclo real de coleta (anda ao nó, acumula, anda à entrega, descarrega).
 
 import { Sim } from './sim';
 import {
   addStock,
+  carryCapacity,
   gatherTick,
   spendStock,
   type Gatherer,
@@ -677,10 +675,13 @@ export class Game {
       techTick(this.techs[p], dt);
     }
 
+    // Ciclo de coleta: anda ao nó, acumula até a carga, anda à entrega, descarrega.
     for (const id of sortedKeys(this.gatherers)) {
       const g = this.gatherers.get(id);
       const player = this.gatherOwner.get(id);
       if (!g || player === undefined || !g.source) continue;
+      const u = this.sim.state.units.find((v) => v.id === id);
+      if (!u || u.hp <= 0) continue;
       // Esgotamento: fazendas são infinitas; demais fontes têm estoque.
       if (g.source.kind !== 'farm') {
         const key = nodeKey(g.source.kind, g.source.x, g.source.y);
@@ -701,10 +702,14 @@ export class Game {
         }
       }
       const mult = gatherMult(this.techs[player], gatherGroup(g.source.kind));
-      const { delivered } = gatherTick(g, dt * mult, true);
-      for (const res of Object.keys(delivered) as (keyof typeof delivered)[]) {
-        const n = delivered[res];
-        if (n !== undefined && n > 0) {
+      const atNode = Math.hypot(u.x - g.source.x, u.y - g.source.y) <= 1.5;
+      const drop = g.dropoff ?? { x: g.source.x, y: g.source.y };
+      const atDrop = Math.hypot(u.x - drop.x, u.y - drop.y) <= 2;
+      if (g.amount >= carryCapacity(g.source.kind) && g.carrying) {
+        // Cheio: entrega no ponto (anda até lá se preciso).
+        if (atDrop) {
+          const res = g.carrying;
+          const n = g.amount;
           const key = nodeKey(g.source.kind, g.source.x, g.source.y);
           const left = this.nodes.get(key);
           if (left === undefined || g.source.kind === 'farm') {
@@ -714,6 +719,17 @@ export class Game {
             this.nodes.set(key, left - actual);
             if (actual > 0) addStock(this.stocks[player], res, actual);
           }
+          g.amount = 0;
+          g.carrying = null;
+        } else if (u.queue.length === 0) {
+          this.sim.commandMove([id], drop.x, drop.y);
+        }
+      } else {
+        // Acumula no nó (anda até lá se preciso; sem entrega fora do ponto).
+        if (atNode) {
+          gatherTick(g, dt * mult, false);
+        } else if (u.queue.length === 0) {
+          this.sim.commandMove([id], g.source.x, g.source.y);
         }
       }
     }

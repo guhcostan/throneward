@@ -52,14 +52,18 @@ test('gather berries accumulates carrying', async ({ page }) => {
   const before = await state(page);
   const villager = before.units.find((u) => u.type === 'villager');
   expect(villager).toBeDefined();
+  const food0 = before.resources[0].food;
   const res = await cmd(page, { type: 'gather', unitId: villager!.id, kind: 'berry', x: 0, y: 0, dx: 1, dy: 1 });
   expect(res.ok).toBe(true);
 
-  await page.waitForTimeout(3000);
+  // Ciclo real (anda até a fruta, acumula, entrega): viaja no tempo da simulação.
+  await cmd(page, { type: 'tick', seconds: 120 });
   const later = await state(page);
   const g = later.gatherers.find((x) => x.id === villager!.id);
   expect(g).toBeDefined();
-  expect(g!.amount).toBeGreaterThan(0);
+  const food1 = later.resources[0].food;
+  // Acumulou no cesto ou já entregou no estoque.
+  expect(g!.amount > 0 || food1 > food0).toBe(true);
   expect(errors).toEqual([]);
 });
 
