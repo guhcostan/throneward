@@ -237,3 +237,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-09 (Round 52)
 - Perf: tick 0.51ms → 0.13ms com 200u em combate (fog a cada 10 ticks, determinístico). 130x de folga no orçamento 16.6ms.
+
+## Estado 2026-10-09 (Round 54)
+- Auto-defesa: tropa ociosa revida num raio de alcance+3 (aldeões/monges fora). Teste de combate corrigido p/ cenário justo (melee colado).
+- 319 unit, CI triplo verde 37882162430. Deploy prod.
