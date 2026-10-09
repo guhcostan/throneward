@@ -259,3 +259,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 63)
 - Cancelar produção por clique (reembolso) + e2e; bombardeiro nas listas militares.
 - E2E 34/34, unit 322/322. Deploy prod; CI revalida.
+
+## Estado 2026-10-09 (Round 64)
+- Menores v11: alcance mínimo do mangonel, aríete 35s, besta na UI (22.5s).
+- CI triplo verde 37888207756. Deploy prod.
