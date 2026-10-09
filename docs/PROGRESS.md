@@ -251,3 +251,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-09 (Round 60)
 - Tag v11 (economia viva). CI triplo verde 37883410148. Deploy prod.
+
+## Estado 2026-10-09 (Round 62+)
+- Críticas v11 aplicadas: botões Parar/Reparar/Montar, Portão com motivo, placeholder honesto, Q/E 90°, ajuda completa, muros destrutíveis, cerco SPEC (bônus/resistência/velocidade), ritmo medido (refuta 6–9min).
+- CI revalida pós-deploy.
