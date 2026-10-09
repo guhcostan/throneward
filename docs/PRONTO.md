@@ -1,7 +1,7 @@
 # PRONTO — auditoria de aceite (Throneward)
 
-Atualizado: 2026-10-09. Unidade: 306 testes (24 arquivos). E2E: 23 testes (13 arquivos).
-CI: build + e2e + e2e-prod (https://throneward.pages.dev). Tags: v1–v8.
+Atualizado: 2026-10-09. Unidade: 318 testes (24 arquivos). E2E: 33 testes (19 arquivos).
+CI: build + e2e + e2e-prod (https://throneward.pages.dev). Tags: v1–v10.
 
 ## Escopo mínimo → evidência
 
@@ -13,7 +13,7 @@ CI: build + e2e + e2e-prod (https://throneward.pages.dev). Tags: v1–v8.
 6. **Economia** (4 recursos, aldeões, fazendas, entrega, pop 200): `tests/resources.test.ts`, `tests/construction.test.ts`, `tests/game.test.ts`, `e2e/economy.spec.ts`.
 7. **4 idades via landmark 1-de-2**: `tests/ages.test.ts` (15) + `e2e/ages.spec.ts` + `e2e/ui.spec.ts` (pela UI).
 8. **Combate com counters/armadura/upgrades/cerco**: `tests/combat.test.ts` (15, baseline I + escala) + `e2e/combat.spec.ts` + `e2e/siege.spec.ts`.
-9. **Defesas** (paliçada/pedra, torres, keep): `tests/defenses.test.ts` (13); muros sem render e sem unidades sobre muros (dívida).
+9. **Defesas** (paliçada/pedra com render, portões, unidades no alto, torres, keep): `tests/defenses.test.ts` (13) + `e2e/walls.spec.ts` + `e2e/gates.spec.ts` + `e2e/walltop.spec.ts`.
 10. **Furtivas/relíquias/monges/sagrados/comércio**: `tests/relics.test.ts`, `tests/sacred.test.ts`, `tests/trade.test.ts`, `e2e/relics.spec.ts`.
 11. **Vitória** (landmarks/sagrados/maravilha/aniquilação): `e2e/victory.spec.ts` (3) + `e2e/siege.spec.ts` (landmark) + bot-vs-bot com vencedor (`tests/bot.test.ts`).
 12. **HUD layout**: `e2e/boot.spec.ts` (identidade), `hud-live.png`, painel lateral (ociosos/placar/objetivos/produção).
@@ -29,4 +29,4 @@ CI: build + e2e + e2e-prod (https://throneward.pages.dev). Tags: v1–v8.
 - [x] Relatório: esta auditoria + docs/PROGRESS.md + docs/BALANCE.md + docs/SPEC.md.
 
 ## Dívidas abertas
-B-001 (compositor headless, prova pixelada de origem ambiental); muros sem render/unidades-sobre-muros; carga só +3 sem escala de tech; fog sem efeito furtivo em combate; tuning contínuo de bots/dificuldades.
+B-001 (compositor headless, prova pixelada de origem ambiental); tuning contínuo de bots/dificuldades; conversão de monges (fora do mínimo).
