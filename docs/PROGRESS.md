@@ -230,3 +230,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-09 (Round 49)
 - Bot treina monges (mosteiro era III) e disputa sagrados. CI triplo verde 37877993345. Deploy prod.
+
+## Estado 2026-10-09 (Round 51)
+- Reparo de prédios (ordem + UI botão direito + e2e); cooldown real no cerco (bug 60 golpes/s); varredura final na aniquilação.
+- E2E 33/33, unit 318/318. Deploy prod; CI revalida.
