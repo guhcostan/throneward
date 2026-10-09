@@ -38,8 +38,8 @@ test('advance to feudal with a builder, then barracks allowed', async ({ page })
     .poll(async () => (await state(page)).ages[0].age, { timeout: 15000 })
     .toBe(2);
 
-  // HUD age indicator follows (atualizado no rAF).
-  await expect(page.locator('#age')).toContainText('II');
+  // HUD age indicator follows (atualizado no rAF; nomes Dark/Feudal/Castle/Imperial).
+  await expect(page.locator('#age')).toContainText('Feudal');
 
   // Barracks now allowed (give funds: landmark spent the initial stock).
   const st = await state(page);
