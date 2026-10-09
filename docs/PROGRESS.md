@@ -223,3 +223,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 47)
 - Esgotamento: fontes com estoque, migração automática, fazendas infinitas, caça com valores THR v0.
 - 315 unit, CI triplo verde. Deploy prod.
+
+## Estado 2026-10-09 (Round 48)
+- Bot comercia: mercado na build order, 2º mercado distante, mercador treinado, rota ativa.
+- 316 unit, CI triplo verde 37877239371. Deploy prod.
