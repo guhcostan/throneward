@@ -1317,6 +1317,8 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   });
 
   let frameN = 0;
+  let fpsFrames = 0;
+  let fpsT0 = performance.now();
   const bannerShown = { v: false };
   function frame(): void {
     game.tick(1 / 60);
@@ -1369,6 +1371,15 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       const ageEl = document.getElementById('age');
       const AGE_NAMES = ['Dark', 'Feudal', 'Castle', 'Imperial'];
       if (ageEl) ageEl.textContent = AGE_NAMES[game.ages[0]?.age - 1] ?? 'Dark';
+      // FPS médio do último segundo (verificação de performance em hardware real).
+      fpsFrames++;
+      const nowMs = performance.now();
+      if (nowMs - fpsT0 >= 1000) {
+        const fpsEl = document.getElementById('fps');
+        if (fpsEl) fpsEl.textContent = `${Math.round((fpsFrames * 1000) / (nowMs - fpsT0))} fps`;
+        fpsFrames = 0;
+        fpsT0 = nowMs;
+      }
       // Painel lateral: ociosos, objetivos, placar, produção global.
       setText('idle-vil-n', String(game.idleVillagers(0).length));
       setText('idle-mil-n', String(game.idleMilitary(0).length));
