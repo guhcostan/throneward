@@ -188,3 +188,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - Críticas v9 aplicadas: painel HP/stats/fila, aldeões por recurso, eras Dark/Feudal, menu sem v0.4, screenshot prod no CI.
 - Balance v9: cerco com HP/custo, techs +1, carga com tech, velocidades, bombardeiro, HDA por era completa.
 - Deploy pós-correções; CI revalida prod.
+
+## Estado 2026-10-09 (Round 38+)
+- Fix grave: throttle frameN%60 após frameN++%15 NUNCA casava → minimapa dots e véu congelados desde r32. Reestruturado (60/15 separados, incremento no fim). Screenshot fog refeito com véu.
+- CI triplo verde. Deploy prod.
