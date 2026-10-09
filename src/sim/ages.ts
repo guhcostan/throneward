@@ -34,7 +34,7 @@ export const AGE_UNLOCKS: Record<Age, { units: string[]; buildings: string[] }> 
     buildings: ['towncenter', 'house', 'farm', 'mill', 'lumber', 'mining'],
   },
   2: {
-    units: ['villager', 'scout', 'spearman', 'archer', 'longbow'],
+    units: ['villager', 'scout', 'spearman', 'archer', 'longbow', 'trader'],
     buildings: [
       'towncenter', 'house', 'farm', 'mill', 'lumber', 'mining',
       'barracks', 'archerrange', 'stable', 'blacksmith', 'market', 'outpost', 'palisade',

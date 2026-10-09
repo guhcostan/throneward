@@ -390,6 +390,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       ui: () => ({
         placeMode: placeMode?.building ?? null,
         choosingAge,
+        routeMode: routeMode ? { traderId: routeMode.traderId, from: routeMode.from ?? null } : null,
         selected: [...selected],
         selectedB: [...selectedB]
       })
@@ -579,6 +580,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   let selected: number[] = [];
   let selectedB: number[] = [];
   let placeMode: { building: string; from?: { x: number; y: number } } | null = null;
+  let routeMode: { traderId: number; from?: number } | null = null;
   let choosingAge = false;
   const groups = new ControlGroups();
   let lastClick = { t: 0, x: 0, y: 0 };
@@ -668,7 +670,9 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       { unit: 'longbow', label: 'Arco Longo', time: 15 },
       { unit: 'handcannoneer', label: 'Bombardeiro', time: 35 }
     ],
-    stable: [{ unit: 'scout', label: 'Batedor', time: 23 }]
+    stable: [{ unit: 'scout', label: 'Batedor', time: 23 }],
+    market: [{ unit: 'trader', label: 'Mercador', time: 30 }],
+    monastery: [{ unit: 'monk', label: 'Monge', time: 30 }]
   };
   const BUILDABLE = ['house', 'farm', 'mill', 'barracks', 'archerrange', 'stable', 'market', 'palisade'];
 
@@ -702,6 +706,13 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     if (placeMode) {
       btn('cancel', 'Cancelar', 'Cancelar posicionamento (Esc)', true, () => {
         placeMode = null;
+        setHint(null);
+        lastGridSig = '';
+        refreshGrid();
+      });
+    } else if (routeMode) {
+      btn('cancel', 'Cancelar', 'Cancelar rota (Esc)', true, () => {
+        routeMode = null;
         setHint(null);
         lastGridSig = '';
         refreshGrid();
@@ -747,6 +758,8 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         }
         btn(`build-${bt}`, bt, title, ok, () => {
           placeMode = { building: bt };
+          routeMode = null;
+          choosingAge = false;
           setHint(`Clique no terreno para construir: ${bt} (Esc cancela)`);
           refreshGrid();
         });
@@ -754,6 +767,18 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       const st = game.ages[0];
       btn('advance', 'Era ↑', 'Avançar de era (landmark)', st.age < 4 && !st.advancing, () => {
         choosingAge = true;
+        placeMode = null;
+        routeMode = null;
+        refreshGrid();
+      });
+    }
+    const selTraders = selUnits.filter((u) => u.type === 'trader');
+    if (selTraders.length > 0) {
+      btn('route', 'Rota', 'Definir rota de comércio (2 mercados)', true, () => {
+        routeMode = { traderId: selTraders[0].id };
+        placeMode = null;
+        choosingAge = false;
+        setHint('Rota: clique o mercado de origem (Esc cancela)');
         refreshGrid();
       });
     }
@@ -890,6 +915,26 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     const isDouble = now - lastClick.t < 400 && Math.hypot(e.clientX - lastClick.x, e.clientY - lastClick.y) < 8;
     lastClick = { t: now, x: e.clientX, y: e.clientY };
     if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 6) {
+      // Rota de comércio: dois cliques em mercados próprios construídos.
+      if (routeMode) {
+        const market = [...game.buildings.values()].find(
+          (b) => b.player === 0 && b.type === 'market' && b.built && Math.hypot(b.x - g.x, b.y - g.z) <= 3.5
+        );
+        if (!market) {
+          setHint('Rota: clique em um mercado próprio (Esc cancela)');
+        } else if (routeMode.from === undefined) {
+          routeMode.from = market.id;
+          setHint('Rota: clique o mercado de destino (Esc cancela)');
+        } else {
+          const id = game.assignRoute(routeMode.traderId, routeMode.from, market.id);
+          setHint(id === -1 ? 'Rota inválida' : 'Rota de comércio ativa');
+          if (id !== -1) sfx.order();
+          else sfx.error();
+          routeMode = null;
+        }
+        refreshGrid();
+        return;
+      }
       if (placeMode) {
         // Muralha: primeiro clique marca o início, segundo fecha o trecho.
         if (placeMode.building === 'palisade' && !placeMode.from) {
@@ -975,8 +1020,9 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   });
   el.addEventListener('contextmenu', (e: MouseEvent) => {
     e.preventDefault();
-    if (placeMode) {
+    if (placeMode || routeMode) {
       placeMode = null;
+      routeMode = null;
       setHint(null);
       refreshGrid();
       return;
@@ -987,8 +1033,10 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       placeMode = null;
+      routeMode = null;
       choosingAge = false;
       setHint(null);
+      lastGridSig = '';
       refreshGrid();
       return;
     }    if (/^[0-9]$/.test(e.key)) {
