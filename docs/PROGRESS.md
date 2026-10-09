@@ -162,3 +162,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
   FPS 37 c/ 215u (SwiftShader; sem regressão vs cápsulas). Seleção por raycast exigiu fix no teste (unidade da frente).
 - E2E 22/22, unit 299 (23 arq), CI verde 37861701073. Deploy prod.
 - Próximo: B-001 + relatório final Pronto.
+
+## Estado 2026-10-08 (Round 30)
+- CI 37862324337: build + e2e + e2e-prod (contra https://throneward.pages.dev, runner com TLS real) — TODOS VERDES.
+- Deploy final 19ec1b0c (== main). B-001 fechado como ambiental (mira 222x222 em (12,12), compositor headless).
+- Falta p/ encerrar: relatório final + marcar goal (aguardando critério 60fps em hardware real e tuning de balanceamento — ver próxima mensagem).
