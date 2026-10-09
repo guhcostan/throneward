@@ -98,11 +98,42 @@ test('annihilation: destroying the enemy base wins', async ({ page }) => {
     await cmd(page, { type: 'attack', unitId: k.id!, targetId: foe.id });
   }
   const etc = st.buildings.find((b) => b.type === 'towncenter' && b.player === 1)!;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 6; i++) {
     const r = await cmd(page, { type: 'spawn', unit: 'ram', player: 0, x: etc.x + 1 + i, y: etc.y });
     await cmd(page, { type: 'siege', unitId: r.id!, buildingId: etc.id });
   }
-  await cmd(page, { type: 'tick', seconds: 400 });
+  await cmd(page, { type: 'tick', seconds: 200 });
+  // Varredura: o TC pode cuspir um aldeão antes de cair; caça final.
+  for (let round = 0; round < 4; round++) {
+    await page.evaluate(() => {
+      const g = window as unknown as { __game: {
+        getState: () => { units: { id: number; type: string; player: number; hp: number; x: number; y: number }[] };
+        command: (c: unknown) => unknown;
+      } };
+      const s = g.__game.getState();
+      const foes = s.units.filter((u) => u.player === 1 && u.hp > 0);
+      const army = s.units.filter(
+        (u) => u.player === 0 && u.hp > 0 && u.type !== 'villager' && u.type !== 'ram'
+      );
+      for (const foe of foes) {
+        let best = army[0];
+        let bd = Infinity;
+        for (const m of army) {
+          const d = Math.hypot(m.x - foe.x, m.y - foe.y);
+          if (d < bd) {
+            bd = d;
+            best = m;
+          }
+        }
+        // Sem perseguição automática: anda até o alvejante e ataca ao chegar.
+        if (best) {
+          g.__game.command({ type: 'move', unitIds: [best.id], x: foe.x, y: foe.y });
+          g.__game.command({ type: 'attack', unitId: best.id, targetId: foe.id });
+        }
+      }
+    });
+    await cmd(page, { type: 'tick', seconds: 60 });
+  }
   await expect
     .poll(async () => (await snap(page)).winner, { timeout: 30000 })
     .toEqual({ player: 0, reason: 'annihilation' });
