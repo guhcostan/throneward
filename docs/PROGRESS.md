@@ -245,3 +245,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 56)
 - Ciclo real de coleta (nó → entrega a pé). Economia e2e adaptados; varredura convergente na aniquilação.
 - E2E 33/33, unit 319/319, CI triplo verde. Deploy prod 96551c94.
+
+## Estado 2026-10-09 (Round 58)
+- Bot vs bot (easy, economia real): Feudal 5min, Castle 10min, batalhas com baixas, vencedor landmarks aos 14min. Arco crível.
