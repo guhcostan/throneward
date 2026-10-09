@@ -167,3 +167,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 - CI 37862324337: build + e2e + e2e-prod (contra https://throneward.pages.dev, runner com TLS real) — TODOS VERDES.
 - Deploy final 19ec1b0c (== main). B-001 fechado como ambiental (mira 222x222 em (12,12), compositor headless).
 - Falta p/ encerrar: relatório final + marcar goal (aguardando critério 60fps em hardware real e tuning de balanceamento — ver próxima mensagem).
+
+## Estado 2026-10-09 (Round 31)
+- Fog of war completo: src/sim/fog.ts + Game (initFog/update/isSeenBy) + véu 3D + unidades ocultas + minimapa filtrado + ordens respeitam visão + e2e.
+- E2E 23/23, unit 303/303. CI: build+e2e verdes; e2e-prod falhou contra produção DESATUALIZADA (faltava deploy) — deploy feito, revalidando.
