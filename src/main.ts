@@ -388,6 +388,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     | { type: 'siege'; unitId: number; buildingId: number }
     | { type: 'gate'; player: number; wallId: number; gate: boolean }
     | { type: 'mount'; unitId: number; wallId: number }
+    | { type: 'repair'; unitId: number; buildingId: number }
     | { type: 'spawn'; unit: string; player: number; x: number; y: number }
     | { type: 'advance'; player: number; slot: 0 | 1 }
     | { type: 'agebuilder'; player: number; unitId: number }
@@ -486,6 +487,9 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       }
       if (cmd.type === 'mount') {
         return { ok: game.mountWall(cmd.unitId, cmd.wallId) };
+      }
+      if (cmd.type === 'repair') {
+        return { ok: game.orderRepair(cmd.unitId, cmd.buildingId) };
       }
       if (cmd.type === 'spawn') {
         // TEST HOOK: spawn a unit (e2e only).
@@ -922,6 +926,31 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       for (const m of military) game.orderSiege(m.id, foeB.id);
       sfx.attack();
       return;
+    }
+    // Reparo: aldeões consertam prédio próprio danificado sob o clique.
+    const ownB = [...game.buildings.values()].find((b) => {
+      if (b.player !== 0 || b.hp >= b.maxHp) return false;
+      let w = 3;
+      let h = 3;
+      try {
+        const fp = buildingFootprint(b.type as BuildingKind);
+        w = fp.w;
+        h = fp.h;
+      } catch {
+        w = 3;
+        h = 3;
+      }
+      return Math.abs(b.x - wx) <= w / 2 + 1.5 && Math.abs(b.y - wz) <= h / 2 + 1.5;
+    });
+    const vils = mine.filter((u) => u.type === 'villager');
+    if (ownB && vils.length > 0) {
+      let any = false;
+      for (const v of vils) any = game.orderRepair(v.id, ownB.id) || any;
+      if (any) {
+        sfx.order();
+        refreshSelection();
+        return;
+      }
     }
     // Montar muralha de pedra própria com à distância selecionados.
     const ranged = mine.filter(

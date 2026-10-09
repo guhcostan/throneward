@@ -329,3 +329,21 @@ describe('Game:esgotamento', () => {
     expect(g.gatherers.get(v.id)?.source).toBeNull();
   });
 });
+
+describe('Game:reparo', () => {
+  it('aldeão repara prédio danificado até o máximo', () => {
+    const g = new Game(50, 1);
+    const tc = g.orderBuild(0, 'towncenter', 0, 0);
+    const b = g.buildings.get(tc)!;
+    b.progress = 1;
+    b.built = true;
+    b.hp = 100;
+    const v = g.sim.spawnUnit('villager', 0, 1, 0);
+    expect(g.orderRepair(v.id, tc)).toBe(true);
+    for (let i = 0; i < 600; i++) g.tick(DT);
+    expect(b.hp).toBeGreaterThan(100);
+    // Recusa: não-aldeão, prédio alheio, prédio íntegro.
+    const sp = g.sim.spawnUnit('spearman', 0, 1, 0);
+    expect(g.orderRepair(sp.id, tc)).toBe(false);
+  });
+});

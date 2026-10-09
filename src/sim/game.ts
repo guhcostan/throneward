@@ -150,6 +150,8 @@ export class Game {
   private chargeAcc = new Map<number, number>();
   // Cerco a prédios: atacante -> buildingId.
   private siegeTargets = new Map<number, number>();
+  // Reparo: aldeão -> buildingId (25 HP/s num raio de 2.5; THR v0 VERIFICAR).
+  private repairTargets = new Map<number, number>();
   // Landmarks físicos por jogador (entidades colocadas ao concluir cada avanço).
   landmarks = new Map<number, number[]>();
   private advancedEver = new Set<number>();
@@ -449,6 +451,18 @@ export class Game {
     const b = this.buildings.get(buildingId);
     if (!a || !b || a.player === b.player) return false;
     this.siegeTargets.set(unitId, buildingId);
+    return true;
+  }
+
+  // Ordem de reparo: aldeão conserta prédio próprio danificado.
+  orderRepair(unitId: number, buildingId: number): boolean {
+    const a = this.sim.state.units.find((u) => u.id === unitId);
+    const b = this.buildings.get(buildingId);
+    if (!a || !b || a.type !== 'villager' || a.player !== b.player || b.hp >= b.maxHp) return false;
+    this.gatherers.delete(unitId);
+    this.gatherOwner.delete(unitId);
+    this.targets.delete(unitId);
+    this.repairTargets.set(unitId, buildingId);
     return true;
   }
   // Torre defensiva (custo THR v0 VERIFICAR em TOWER_DEFS). Retorna id ou -1.
@@ -785,6 +799,7 @@ export class Game {
     }
 
     // Cerco: unidades atacam prédios inimigos (dano com bônus de cerco, sem armadura).
+    // Respeita a cadência da unidade (mesmo mapa de cooldown do melee).
     for (const attackerId of sortedKeys(this.siegeTargets)) {
       const buildingId = this.siegeTargets.get(attackerId);
       if (buildingId === undefined) continue;
@@ -797,8 +812,31 @@ export class Game {
       const stats = UNIT_COMBAT[a.type];
       const reach = stats && stats.range > 1 ? stats.range : 1.5;
       if (Math.hypot(b.x - a.x, b.y - a.y) > reach) continue;
+      const cdLeft = (this.cooldowns.get(attackerId) ?? 0) - dt;
+      if (cdLeft > 0) {
+        this.cooldowns.set(attackerId, cdLeft);
+        continue;
+      }
+      this.cooldowns.set(attackerId, stats?.cooldown ?? 2);
       const dmg = dealDamage((stats?.damage ?? 5) * (SIEGE_UNITS.has(a.type) ? SIEGE_VS_BUILDING : 1), 0);
       b.hp -= dmg;
+    }
+
+    // Reparo: aldeão perto do prédio restaura 25 HP/s (anda até lá se longe).
+    for (const workerId of sortedKeys(this.repairTargets)) {
+      const buildingId = this.repairTargets.get(workerId);
+      if (buildingId === undefined) continue;
+      const a = this.sim.state.units.find((u) => u.id === workerId);
+      const b = this.buildings.get(buildingId);
+      if (!a || a.hp <= 0 || !b || b.hp >= b.maxHp) {
+        this.repairTargets.delete(workerId);
+        continue;
+      }
+      if (Math.hypot(b.x - a.x, b.y - a.y) > 2.5) {
+        if (a.queue.length === 0) this.sim.commandMove([workerId], b.x, b.y);
+        continue;
+      }
+      b.hp = Math.min(b.maxHp, b.hp + 25 * dt);
     }
 
     // Fase 6: renda de relíquias (por jogador dono do mosteiro).
@@ -869,6 +907,7 @@ export class Game {
         this.targets.delete(id);
         this.cooldowns.delete(id);
         this.siegeTargets.delete(id);
+        this.repairTargets.delete(id);
         this.lastPos.delete(id);
         this.chargeAcc.delete(id);
       }
