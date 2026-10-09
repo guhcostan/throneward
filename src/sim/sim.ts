@@ -1,6 +1,8 @@
 // Deterministic fixed-tick simulation core. No DOM, no Three.js here so it runs headless in Node.
 // Mulberry32 PRNG + fixed dt tick. Same seed => same result.
 
+import { findPath, smoothPath } from './pathfind';
+
 export type Resource = 'food' | 'wood' | 'gold' | 'stone';
 
 export interface SimConfig {
@@ -75,6 +77,17 @@ export class Sim {
   state: GameState;
   private rng: () => number;
   private nextUnitId = 1;
+  // Grade de bloqueio opcional (A*). Tiles size×size, mundo centrado (tile = round(x + size/2)).
+  private blocked: { grid: Uint8Array; size: number } | null = null;
+
+  // Define a grade de bloqueio (chamado pelo integrador com terreno + muralhas).
+  setBlocked(grid: Uint8Array, size: number): void {
+    this.blocked = { grid, size };
+  }
+
+  clearBlocked(): void {
+    this.blocked = null;
+  }
 
   constructor(config: SimConfig) {
     this.config = config;
@@ -94,8 +107,24 @@ export class Sim {
       const u = this.state.units.find((v) => v.id === id);
       if (!u) continue;
       if (!queueShift) u.queue = [];
-      u.queue.push({ x, y });
+      const routed = this.route(u.x, u.y, x, y);
+      for (const p of routed) u.queue.push(p);
     }
+  }
+
+  // Roteia por A* quando há grade de bloqueio; senão (ou sem caminho), linha reta.
+  private route(x0: number, y0: number, x1: number, y1: number): { x: number; y: number }[] {
+    if (!this.blocked) return [{ x: x1, y: y1 }];
+    const { grid, size } = this.blocked;
+    const off = size / 2;
+    const sx = Math.round(x0 + off);
+    const sy = Math.round(y0 + off);
+    const tx = Math.round(x1 + off);
+    const ty = Math.round(y1 + off);
+    const path = smoothPath(grid, size, findPath(grid, size, sx, sy, tx, ty));
+    if (path.length === 0) return [{ x: x1, y: y1 }]; // inalcançável: tenta reto
+    // findPath exclui a origem e inclui o destino; smoothPath mantém.
+    return path.map((t) => ({ x: t.x - off, y: t.y - off }));
   }
 
   tickOnce(dt = 1 / 60): void {

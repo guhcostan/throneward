@@ -199,8 +199,29 @@ export class Game {
   }
 
   // Inicializa o nevoeiro para um mapa size×size (tiles). Sem isso, tudo é visível.
+  // Também fixa o tamanho do mapa para conversão mundo↔tile (muralhas, pathfinding).
+  mapSize = 0;
+
   initFog(size: number): void {
     this.fog = new Fog(size, this.stocks.length);
+    this.mapSize = size;
+  }
+
+  // Tiles (coordenadas de tile) ocupados por todas as muralhas — para bloqueio e render.
+  wallTilesAll(): { x: number; y: number; wall: number; kind: string }[] {
+    const out: { x: number; y: number; wall: number; kind: string }[] = [];
+    const off = this.mapSize / 2;
+    for (const w of this.walls.values()) {
+      // Muralhas guardam coords de mundo; wallTiles opera em tiles.
+      const tiles = wallTiles({
+        id: w.id, player: w.player, kind: w.kind,
+        x1: Math.round(w.x1 + off), y1: Math.round(w.y1 + off),
+        x2: Math.round(w.x2 + off), y2: Math.round(w.y2 + off),
+        hp: w.hp, maxHp: w.maxHp, gate: w.gate
+      });
+      for (const t of tiles) out.push({ x: t.x, y: t.y, wall: w.id, kind: w.kind });
+    }
+    return out;
   }
 
   // Unidade visível para `viewer`? (próprias sempre; inimigas só se vistas).
@@ -434,12 +455,18 @@ export class Game {
     return id;
   }
 
-  // Muralha entre dois pontos (custo por tile THR v0 VERIFICAR). Retorna id ou -1.
+  // Muralha entre dois pontos (coords de MUNDO). Custo por tile THR v0 VERIFICAR.
   placeWall(player: number, kind: 'palisade' | 'stone', x1: number, y1: number, x2: number, y2: number, gate = false): number {
     const stock = this.stocks[player];
     const def = WALL_DEFS[kind];
     if (!stock || !def) return -1;
-    const tiles = wallTiles({ id: -1, player, kind, x1, y1, x2, y2, hp: 1, maxHp: 1, gate });
+    const off = this.mapSize / 2;
+    const tiles = wallTiles({
+      id: -1, player, kind,
+      x1: Math.round(x1 + off), y1: Math.round(y1 + off),
+      x2: Math.round(x2 + off), y2: Math.round(y2 + off),
+      hp: 1, maxHp: 1, gate
+    });
     const cost = { ...def.cost };
     if (cost.wood !== undefined) cost.wood *= tiles.length;
     if (cost.stone !== undefined) cost.stone *= tiles.length;
@@ -770,6 +797,11 @@ export class Game {
     }
 
     return { trained };
+  }
+
+  // Repassa a grade de bloqueio (terreno + muralhas) para o pathfinding do Sim.
+  setBlockedGrid(grid: Uint8Array, size: number): void {
+    this.sim.setBlocked(grid, size);
   }
 
   // População usada por jogador: unidades vivas + itens na fila de treino.

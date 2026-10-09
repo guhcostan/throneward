@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Sim } from './sim/sim';
 import { Game } from './sim/game';
-import { generateTerrain, type TerrainData } from './sim/terrain';
+import { generateTerrain, blockedGrid, type TerrainData } from './sim/terrain';
 import { createCamera, attachCamera, cameraPos, type CameraState } from './render/camera';
 import { heightColor, forestInstances, minimapImage } from './render/world';
 import { Settlement, buildingFootprint } from './render/settlement';
@@ -240,6 +240,68 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   const settlement = new Settlement();
   scene.add(settlement.group);
   const asKind = (t: string): BuildingKind => t as BuildingKind;
+  // Muralhas: caixas por tile (paliçada marrom h1.5, pedra cinza h2.5).
+  const wallsGroup = new THREE.Group();
+  scene.add(wallsGroup);
+  const wallGeo = new THREE.BoxGeometry(1, 1, 1);
+  const wallMats: Record<string, THREE.MeshStandardMaterial> = {
+    palisade: new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 1 }),
+    stone: new THREE.MeshStandardMaterial({ color: 0x8a8a8a, roughness: 1 })
+  };
+  let wallsSig = '';
+  const syncWalls = (): void => {
+    const sig = [...game.walls.values()].map((w) => `${w.id}:${w.hp}`).join(',');
+    if (sig === wallsSig) return;
+    wallsSig = sig;
+    while (wallsGroup.children.length > 0) wallsGroup.remove(wallsGroup.children[0]);
+    for (const t of game.wallTilesAll()) {
+      const stone = t.kind === 'stone';
+      const m = new THREE.Mesh(wallGeo, stone ? wallMats.stone : wallMats.palisade);
+      const wx = t.x - terrain.size / 2;
+      const wz = t.y - terrain.size / 2;
+      m.position.set(wx, groundH(terrain, wx, wz) + (stone ? 1.25 : 0.75), wz);
+      m.scale.set(1, stone ? 2.5 : 1.5, 1);
+      wallsGroup.add(m);
+    }
+  };
+
+  // Grade de bloqueio (terreno + muralhas + prédios) para o A* — refeita quando muda.
+  let blockedSig = '';
+  const syncBlocked = (): void => {
+    const sig = `${game.walls.size}:${[...game.walls.values()].map((w) => w.hp).join(',')}|${[...game.buildings.values()].map((b) => b.id).join(',')}`;
+    if (sig === blockedSig) return;
+    blockedSig = sig;
+    const grid = blockedGrid(terrain);
+    for (const t of game.wallTilesAll()) {
+      if (t.x >= 0 && t.y >= 0 && t.x < terrain.size && t.y < terrain.size) {
+        grid[t.y * terrain.size + t.x] = 1;
+      }
+    }
+    for (const b of game.buildings.values()) {
+      let w = 2;
+      let h = 2;
+      try {
+        const fp = buildingFootprint(b.type as BuildingKind);
+        w = fp.w;
+        h = fp.h;
+      } catch {
+        w = 2;
+        h = 2;
+      }
+      const cx = Math.round(b.x + terrain.size / 2);
+      const cy = Math.round(b.y + terrain.size / 2);
+      for (let dy = -Math.floor(h / 2); dy <= Math.floor(h / 2); dy++) {
+        for (let dx = -Math.floor(w / 2); dx <= Math.floor(w / 2); dx++) {
+          const tx = cx + dx;
+          const ty = cy + dy;
+          if (tx >= 0 && ty >= 0 && tx < terrain.size && ty < terrain.size) {
+            grid[ty * terrain.size + tx] = 1;
+          }
+        }
+      }
+    }
+    game.setBlockedGrid(grid, terrain.size);
+  };
   const syncSettlement = (): void => {
     const live = new Set<number>();
     for (const b of game.buildings.values()) {
@@ -317,6 +379,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     | { type: 'research'; player: number; id: string }
     | { type: 'relic'; op: 'pickup' | 'drop' | 'garrison'; unitId: number; relicId: number; x?: number; y?: number; buildingId?: number }
     | { type: 'route'; unitId: number; from: number; to: number }
+    | { type: 'wall'; player: number; kind: string; x1: number; y1: number; x2: number; y2: number }
     | { type: 'grant'; player: number; resource: 'food' | 'wood' | 'gold' | 'stone'; amount: number }
     | { type: 'tick'; seconds: number };
   (window as unknown as { __game: unknown }).__game = {
@@ -343,6 +406,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       scores: game.stocks.map((_, p) => game.score(p)),
       idleVil: game.idleVillagers(0),
       idleMil: game.idleMilitary(0),
+      walls: [...game.walls.values()],
       visible: sim.state.units.filter((u) => u.player !== 0 && game.isSeenByUnit(u, 0)).map((u) => u.id),
       relics: [...game.relics.relics.values()],
       sacred: {
@@ -364,6 +428,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       }
       if (cmd.type === 'build') {
         const id = game.orderBuild(cmd.player, cmd.building, cmd.x, cmd.y);
+        if (id !== -1) syncBlocked();
         return id === -1 ? { ok: false, error: 'no funds' } : { ok: true, id };
       }
       if (cmd.type === 'addbuilder') {
@@ -411,6 +476,11 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       if (cmd.type === 'route') {
         const id = game.assignRoute(cmd.unitId, cmd.from, cmd.to);
         return id === -1 ? { ok: false } : { ok: true, id };
+      }
+      if (cmd.type === 'wall') {
+        const id = game.placeWall(cmd.player, cmd.kind === 'stone' ? 'stone' : 'palisade', cmd.x1, cmd.y1, cmd.x2, cmd.y2);
+        if (id !== -1) syncBlocked();
+        return id === -1 ? { ok: false, error: 'no funds' } : { ok: true, id };
       }
       if (cmd.type === 'grant') {
         // TEST HOOK: concede recursos (e2e only).
@@ -508,7 +578,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   const mouseV = new THREE.Vector2();
   let selected: number[] = [];
   let selectedB: number[] = [];
-  let placeMode: { building: string } | null = null;
+  let placeMode: { building: string; from?: { x: number; y: number } } | null = null;
   let choosingAge = false;
   const groups = new ControlGroups();
   let lastClick = { t: 0, x: 0, y: 0 };
@@ -600,7 +670,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     ],
     stable: [{ unit: 'scout', label: 'Batedor', time: 23 }]
   };
-  const BUILDABLE = ['house', 'farm', 'mill', 'barracks', 'archerrange', 'stable', 'market'];
+  const BUILDABLE = ['house', 'farm', 'mill', 'barracks', 'archerrange', 'stable', 'market', 'palisade'];
 
   const setHint = (t: string | null): void => {
     const h = document.getElementById('hint');
@@ -664,7 +734,11 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       for (const bt of BUILDABLE) {
         let ok = false;
         let title = bt;
-        try {
+        if (bt === 'palisade') {
+          // Muralha: 2 de madeira por tile (WALL_DEFS); dois cliques definem o trecho.
+          ok = canBuild(game.ageOf(0), 'palisade') && (sim.state.resources[0]?.wood ?? 0) >= 2;
+          title = 'palisade — M:2/tile, dois cliques (início e fim)';
+        } else try {
           const def = getDef(bt);
           ok = canBuild(game.ageOf(0), bt) && canAfford(def.cost);
           title = `${bt} — M:${def.cost.wood ?? 0} F:${def.cost.food ?? 0} O:${def.cost.gold ?? 0} P:${def.cost.stone ?? 0}`;
@@ -817,6 +891,27 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     lastClick = { t: now, x: e.clientX, y: e.clientY };
     if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 6) {
       if (placeMode) {
+        // Muralha: primeiro clique marca o início, segundo fecha o trecho.
+        if (placeMode.building === 'palisade' && !placeMode.from) {
+          placeMode.from = { x: g.x, y: g.z };
+          setHint('Paliçada: clique o fim do trecho (Esc cancela)');
+          refreshGrid();
+          return;
+        }
+        if (placeMode.building === 'palisade' && placeMode.from) {
+          const id = game.placeWall(0, 'palisade', placeMode.from.x, placeMode.from.y, g.x, g.z);
+          if (id !== -1) {
+            setHint('Paliçada em construção');
+            sfx.build();
+          } else {
+            setHint('Sem fundos para a paliçada');
+            sfx.error();
+          }
+          placeMode = null;
+          refreshSelection();
+          refreshGrid();
+          return;
+        }
         const id = game.orderBuild(0, placeMode.building, g.x, g.z);
         if (id !== -1) {
           for (const uid of selected) {
@@ -973,6 +1068,8 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     }
     if (frameN % 15 === 0) {
       syncSettlement();
+      syncWalls();
+      syncBlocked();
       refreshGrid();
       if (game.winner && !bannerShown.v) {
         bannerShown.v = true;
