@@ -207,3 +207,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 43)
 - Comércio e monge pela UI (mercado treina mercador, mosteiro treina monge, rota em dois cliques) + e2e trade 27/27.
 - Deploy prod; CI revalida.
+
+## Estado 2026-10-09 (Round 44)
+- Portões funcionais: grades por jogador, toggle na UI e por comando, e2e (dono passa, fechado desvia, inimigo barrado).
+- E2E 29/29, unit 310/310. Deploy prod; CI revalida.
