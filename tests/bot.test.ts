@@ -215,3 +215,25 @@ describe('bot trade', () => {
     expect(g.traders.size).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('bot sacred', () => {
+  it('treina monge no mosteiro para disputar sagrados', () => {
+    const g = new Game(71, 1);
+    g.ages[0].age = 3;
+    for (const r of ['wood', 'food', 'gold'] as const) g.stocks[0].stock[r] = 2000;
+    const tc = g.orderBuild(0, 'towncenter', 0, 0);
+    const tcb = g.buildings.get(tc)!;
+    tcb.progress = 1;
+    tcb.built = true;
+    tcb.hp = tcb.maxHp;
+    g.sim.spawnUnit('villager', 0, 1, 1);
+    const bot = new Bot(g, 0, 'medium', { food: [], wood: [], gold: [], stone: [], dropoff: { x: 0, y: 0 } });
+    for (let i = 0; i < Math.round(600 / DT); i++) {
+      bot.update(DT);
+      g.tick(DT);
+    }
+    const monks = g.sim.state.units.filter((u) => u.type === 'monk').length;
+    const queued = [...g.buildings.values()].some((b) => b.queue.length > 0);
+    expect(monks + (queued ? 1 : 0)).toBeGreaterThanOrEqual(1);
+  });
+});

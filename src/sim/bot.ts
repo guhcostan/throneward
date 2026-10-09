@@ -315,10 +315,18 @@ export class Bot {
     }
   }
 
-  private sacred(): void {    const g = this.game;
+  private sacred(): void {
+    const g = this.game;
     if (g.ageOf(this.player) < 3) return;
-    const monks = this.mine().filter((u) => u.type === 'monk');
-    if (monks.length === 0) return;
+    let monks = this.mine().filter((u) => u.type === 'monk');
+    if (monks.length === 0) {
+      // Treina monge no mosteiro para disputar os sagrados.
+      const mon = [...g.buildings.values()].find(
+        (b) => b.player === this.player && b.type === 'monastery' && b.built
+      );
+      if (mon && mon.queue.length < 1) g.trainUnit(mon.id, 'monk', 30);
+      return;
+    }
     let site: { x: number; y: number } | null = null;
     let bd = Infinity;
     for (const s of g.sacred.sites.values()) {
