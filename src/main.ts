@@ -717,6 +717,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     archerrange: [
       { unit: 'archer', label: 'Arqueiro', time: 15 },
       { unit: 'longbow', label: 'Arco Longo', time: 15 },
+      { unit: 'crossbow', label: 'Besta', time: 22.5 },
       { unit: 'handcannoneer', label: 'Bombardeiro', time: 35 }
     ],
     stable: [{ unit: 'scout', label: 'Batedor', time: 23 }],

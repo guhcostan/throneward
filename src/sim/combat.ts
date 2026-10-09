@@ -97,6 +97,7 @@ export interface Fighter {
   hp: number;
   maxHp: number;
   range: number; // 0 = melee (alcance efetivo 1.0)
+  minRange?: number; // alcance mínimo (mangonel 3); sem ele, 0
   damage: number;
   meleeArmor: number;
   rangedArmor: number;
@@ -110,6 +111,7 @@ export interface UnitCombatStats {
   hp: number;
   damage: number;
   range: number;
+  minRange?: number;
   melee: number;
   ranged: number;
   cooldown: number;
@@ -139,9 +141,9 @@ export const UNIT_COMBAT: Record<string, UnitCombatStats> = {
   knight: { hp: 230, damage: 24, range: 0, melee: 4, ranged: 4, cooldown: 1.5 },
   // Cavaleiro real estágio I: HP 190, espada d19, M3/R3, cadência 1,5 s. Spec §1.3.
   royalknight: { hp: 190, damage: 19, range: 0, melee: 3, ranged: 3, cooldown: 1.5 },
-  // Mangonel: HP 130, catapulta d10, alcance 8 (mín 3 não modelado), cadência 7,88 s.
+  // Mangonel: HP 130, catapulta d10, alcance 8 (mín 3), cadência 7,88 s.
   // Resistência de cerco é percentual (85%), não armadura plana: armadura 0 aqui. VERIFICAR.
-  mangonel: { hp: 130, damage: 10, range: 8, melee: 0, ranged: 0, cooldown: 7.88 },
+  mangonel: { hp: 130, damage: 10, range: 8, minRange: 3, melee: 0, ranged: 0, cooldown: 7.88 },
   // Trabuco: HP 140, dano 40, alcance 16, cadência 16,38 s. Resistência 80% (VERIFICAR como %).
   trebuchet: { hp: 140, damage: 40, range: 16, melee: 0, ranged: 0, cooldown: 16.38 },
   // Bombarda: HP 210, canhão d55, alcance 10, cadência 6,38 s. Resistência 85% (VERIFICAR como %).
@@ -173,11 +175,13 @@ export function hpForAge(type: string, age: number): number | undefined {
 
 /** Alcance efetivo: range 0 = melee (1.0). Distância euclidiana ≤ alcance.
  * Alvo elevado (muralha) só é atingido por ataque à distância ou cerco vindo de cima:
- * melee do chão não alcança. */
+ * melee do chão não alcança. Alcance mínimo (mangonel) nega alvos colados. */
 export function inRange(a: Fighter, b: Fighter): boolean {
   const reach = a.range > 0 ? a.range : 1.0;
   if ((b.elev ?? 0) > 0 && (a.elev ?? 0) === 0 && a.range <= 1) return false;
-  return Math.hypot(b.x - a.x, b.y - a.y) <= reach;
+  const d = Math.hypot(b.x - a.x, b.y - a.y);
+  if ((a.minRange ?? 0) > 0 && d < (a.minRange ?? 0)) return false;
+  return d <= reach;
 }
 
 /**

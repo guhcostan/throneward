@@ -183,7 +183,7 @@ export class Bot {
     const out: { unit: string; building: string; time: number }[] = [];
     if (this.game.ageOf(this.player) >= 3) {
       const rams = this.mine().filter((u) => u.type === 'ram').length;
-      if (rams < 2) out.push({ unit: 'ram', building: 'siegeworkshop', time: 30 });
+      if (rams < 2) out.push({ unit: 'ram', building: 'siegeworkshop', time: 35 }); // SPEC §1.4
     }
     const foes = this.foes().filter((u) => MILITARY.has(u.type));
     const cav = foes.filter((u) => u.type === 'knight' || u.type === 'royalknight' || u.type === 'scout').length;

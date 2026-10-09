@@ -648,7 +648,7 @@ export class Game {
     const range = s.range > 1 && u.elev > 0 ? s.range + 1 : s.range;
     return {
       id: u.id, type: u.type, player: u.player, x: u.x, y: u.y,
-      hp: u.hp, maxHp: u.maxHp, range, damage,
+      hp: u.hp, maxHp: u.maxHp, range, minRange: s.minRange, damage,
       meleeArmor: Math.round((baseMelee + armF) * armM), rangedArmor: Math.round((baseRanged + armF) * armM),
       cooldown: s.cooldown, cdLeft: this.cooldowns.get(u.id) ?? 0, age, elev: u.elev
     };

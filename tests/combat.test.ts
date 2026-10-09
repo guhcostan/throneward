@@ -194,3 +194,14 @@ describe('combat — resistência de cerco (SPEC §1.4)', () => {
     expect(UNIT_COMBAT.ram.hp - ram.hp).toBeCloseTo(0.35, 6);
   });
 });
+
+describe('combat — alcance mínimo (mangonel)', () => {
+  it('mangonel não acerta colado, acerta a meia distância', () => {
+    const mg = make({ type: 'mangonel', player: 0, x: 0, y: 0 });
+    const near = make({ type: 'villager', player: 1, x: 1, y: 0, id: 2 });
+    const mid = make({ type: 'villager', player: 1, x: 5, y: 0, id: 3 });
+    expect(inRange(mg, near)).toBe(false);
+    expect(inRange(mg, mid)).toBe(true);
+    expect(attackTick(mg, near, 1).hits).toEqual([]);
+  });
+});
