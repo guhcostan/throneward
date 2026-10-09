@@ -362,6 +362,23 @@ export class Game {
     return queueUnit(b, unit, time);
   }
 
+  // Cancela um slot da fila com reembolso integral (como no original).
+  cancelTrain(buildingId: number, index: number): boolean {
+    const b = this.buildings.get(buildingId);
+    if (!b || index < 0 || index >= b.queue.length) return false;
+    const [removed] = b.queue.splice(index, 1);
+    if (!removed) return false;
+    const stock = this.stocks[b.player];
+    const cost = TRAIN_COSTS[removed.unit];
+    if (stock && cost) {
+      for (const res of ['food', 'wood', 'gold', 'stone'] as const) {
+        const n = cost[res];
+        if (typeof n === 'number' && n > 0) addStock(stock, res, n);
+      }
+    }
+    return true;
+  }
+
   // Par de landmarks da próxima idade (dados da civ ou genéricos).
   ageChoices(player: number): [LandmarkDef, LandmarkDef] | null {
     const age = this.ageOf(player);
@@ -795,7 +812,7 @@ export class Game {
 
     // Auto-defesa: tropa ociosa (sem alvo, sem fila, sem coleta) revida o inimigo
     // mais próximo num raio de alcance+3. Aldeões, monges e mercadores não revidam.
-    const IDLE_COMBAT = new Set(['spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'scout']);
+    const IDLE_COMBAT = new Set(['spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'scout', 'handcannoneer']);
     for (const u of this.sim.state.units) {
       if (u.hp <= 0 || !IDLE_COMBAT.has(u.type)) continue;
       if (this.targets.has(u.id) || u.queue.length > 0 || this.gatherers.has(u.id)) continue;

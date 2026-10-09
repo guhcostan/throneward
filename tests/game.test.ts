@@ -376,3 +376,22 @@ describe('Game:cerco a muralha', () => {
     expect(g.walls.has(id)).toBe(false);
   });
 });
+
+describe('Game:cancelar treino', () => {
+  it('cancela slot com reembolso integral', () => {
+    const g = new Game(62, 1);
+    const tc = g.orderBuild(0, 'towncenter', 0, 0);
+    const b = g.buildings.get(tc)!;
+    b.progress = 1;
+    b.built = true;
+    b.hp = b.maxHp;
+    const food0 = g.stocks[0].stock.food;
+    expect(g.trainUnit(tc, 'villager', 20)).toBe(true);
+    expect(g.trainUnit(tc, 'villager', 20)).toBe(true);
+    expect(g.stocks[0].stock.food).toBe(food0 - 100);
+    expect(g.cancelTrain(tc, 0)).toBe(true);
+    expect(b.queue.length).toBe(1);
+    expect(g.stocks[0].stock.food).toBe(food0 - 50);
+    expect(g.cancelTrain(tc, 5)).toBe(false);
+  });
+});

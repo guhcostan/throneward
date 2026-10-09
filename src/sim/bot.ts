@@ -27,7 +27,7 @@ const DIST_BY_AGE: Record<number, [number, number, number, number]> = {
   4: [0.3, 0.3, 0.25, 0.15]
 };
 
-const MILITARY = new Set(['spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'arbaletrier']);
+const MILITARY = new Set(['spearman', 'archer', 'longbow', 'crossbow', 'manatarms', 'knight', 'royalknight', 'arbaletrier', 'handcannoneer']);
 
 function dist(ax: number, ay: number, bx: number, by: number): number {
   return Math.hypot(bx - ax, by - ay);

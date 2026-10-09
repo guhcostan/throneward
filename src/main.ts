@@ -687,10 +687,10 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       let line = `${icon} ${b.type} — HP ${Math.ceil(b.hp)}/${b.maxHp}`;
       if (!b.built) line += ` — obra ${(b.progress * 100) | 0}%`;
       if (b.queue.length > 0) {
-        const slots = b.queue.map((q) => {
+        const slots = b.queue.map((q, i) => {
           const done = q.total > 0 ? 1 - q.time / q.total : 1;
           const bars = Math.round(done * 5);
-          return `[${q.unit} ${'▓'.repeat(bars)}${'░'.repeat(5 - bars)}]`;
+          return `<span data-cancel="${b.id}:${i}" title="Cancelar ${q.unit} (reembolsa)" style="cursor:pointer">[${q.unit} ${'▓'.repeat(bars)}${'░'.repeat(5 - bars)}]</span>`;
         }).join(' ');
         line += ` — fila ${slots}`;
       }
@@ -698,6 +698,17 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     }
     el.innerHTML = parts.map((p) => `<div>${p}</div>`).join('');
   };
+
+  // Cancelar produção por clique no slot (delegação: innerHTML troca os filhos).
+  document.getElementById('selection')?.addEventListener('click', (e: MouseEvent) => {
+    const t = (e.target as HTMLElement).closest('[data-cancel]');
+    if (!t) return;
+    const [bid, idx] = (t as HTMLElement).dataset.cancel!.split(':').map(Number);
+    if (game.cancelTrain(bid, idx)) {
+      refreshSelection();
+      refreshGrid();
+    }
+  });
 
   // ---- Grade de comandos contextual ----
   const TRAINABLE: Record<string, { unit: string; label: string; time: number }[]> = {

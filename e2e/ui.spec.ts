@@ -73,6 +73,10 @@ test('full loop by mouse: select, build, train, advance', async ({ page }) => {
   // Painel mostra HP e fila com progresso (D1/D2).
   await expect(page.locator('#selection')).toContainText('HP', { timeout: 5000 });
   await expect(page.locator('#selection')).toContainText('fila', { timeout: 5000 });
+  // Cancelar o slot por clique esvazia a fila (com reembolso).
+  await page.click('#selection [data-cancel]');
+  await expect(page.locator('#selection')).not.toContainText('fila', { timeout: 5000 });
+  await page.click('[data-act="train-villager"]');
   await cmd(page, { type: 'tick', seconds: 25 });
   await expect
     .poll(async () => (await snap(page)).units.length, { timeout: 10000 })
