@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TECHS, TechState, armorBonus, attackMult, gatherMult, research, techTick } from '../src/sim/techs';
+import { TECHS, TechState, armorBonus, armorFlat, attackFlat, attackMult, gatherMult, otherMult, research, techTick } from '../src/sim/techs';
 
 describe('techs', () => {
   it('blocks research below required age', () => {
@@ -18,20 +18,30 @@ describe('techs', () => {
     expect(s.queue[0].timeLeft).toBeCloseTo(35, 6);
   });
 
-  it('attack/armor/gather mults accumulate', () => {
+  it('militares somam +1 (SPEC §3.1); coleta multiplica', () => {
     const s = new TechState();
     research(s, 'melee-atk-1', 4);
     techTick(s, 30);
     research(s, 'melee-atk-2', 4);
     techTick(s, 45);
-    expect(attackMult(s, 'melee')).toBeCloseTo(1.21, 6);
+    expect(attackFlat(s, 'melee')).toBe(2);
+    expect(attackMult(s, 'melee')).toBe(1);
     expect(armorBonus(s, 'melee')).toBe(1);
+    expect(armorFlat(s, 'melee')).toBe(0);
     research(s, 'horticulture', 4);
     techTick(s, 30);
     research(s, 'fertilization', 4);
     techTick(s, 45);
     expect(gatherMult(s, 'food')).toBeCloseTo(1.21, 6);
     expect(gatherMult(s, 'wood')).toBe(1);
+  });
+
+  it('cantled-saddles multiplica a carga', () => {
+    const s = new TechState();
+    expect(otherMult(s, 'charge')).toBe(1);
+    research(s, 'cantled-saddles', 4);
+    techTick(s, 45);
+    expect(otherMult(s, 'charge')).toBeCloseTo(10 / 3, 6);
   });
 
   it('rejects unknown tech and full queue', () => {

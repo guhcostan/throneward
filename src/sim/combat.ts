@@ -138,7 +138,9 @@ export const UNIT_COMBAT: Record<string, UnitCombatStats> = {
   // Bombarda: HP 210, canhão d55, alcance 10, cadência 6,38 s. Resistência 85% (VERIFICAR como %).
   bombard: { hp: 210, damage: 55, range: 10, melee: 0, ranged: 0, cooldown: 6.38 },
   // Aríete: HP 370, aríete d200, alcance melee (0,54 → 0), cadência 5,12 s. Resistência 95% (VERIFICAR).
-  ram: { hp: 370, damage: 200, range: 0, melee: 0, ranged: 0, cooldown: 5.12 }
+  ram: { hp: 370, damage: 200, range: 0, melee: 0, ranged: 0, cooldown: 5.12 },
+  // Bombardeiro de mão: HP 130, arma d38, alcance 4, cadência 2,12 s. Spec §1.5 (era IV).
+  handcannoneer: { hp: 130, damage: 38, range: 4, melee: 0, ranged: 0, cooldown: 2.12 }
 };
 
 // HP por idade (SPEC: homem de armas 100/120/155/180 I–IV; cavaleiro real 190/230/270 II–IV).

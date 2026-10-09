@@ -26,9 +26,9 @@ export interface GameState {
   resources: Record<Resource, number>[];
 }
 
-// Base speeds in tiles/s (SPEC §1.2–1.3; lanceiro IV 1.30 não modelado).
+// Base speeds in tiles/s (SPEC §1.2–1.3, §1.5; lanceiro IV 1.30 não modelado).
 export const UNIT_SPEED: Record<string, number> = {
-  villager: 1.12,
+  villager: 1.125, // SPEC (era 1.12)
   scout: 1.625, // SPEC
   spearman: 1.25,
   archer: 1.25,
@@ -37,8 +37,8 @@ export const UNIT_SPEED: Record<string, number> = {
   manatarms: 1.125, // SPEC
   knight: 1.625, // SPEC
   royalknight: 1.625, // SPEC
-  monk: 1.12,
-  trader: 1.2
+  monk: 1.125, // SPEC
+  trader: 1.0 // SPEC
 };
 
 // Base HP per type = estágio I do SPEC (escalonado por idade no treino via hpForAge).
@@ -53,7 +53,11 @@ export const UNIT_HP: Record<string, number> = {
   knight: 230,
   royalknight: 190, // SPEC estágio II
   monk: 90,
-  trader: 90
+  trader: 90,
+  mangonel: 130, // SPEC §1.4
+  trebuchet: 140, // SPEC §1.4
+  bombard: 210, // SPEC §1.4
+  ram: 370 // SPEC §1.4
 };
 
 export function mulberry32(seed: number): () => number {

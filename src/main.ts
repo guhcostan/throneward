@@ -7,7 +7,8 @@ import { heightColor, forestInstances, minimapImage } from './render/world';
 import { Settlement, buildingFootprint } from './render/settlement';
 import type { BuildingKind } from './render/buildings';
 import { popCap, getDef } from './sim/construction';
-import { canBuild } from './sim/ages';
+import { UNIT_COMBAT } from './sim/combat';
+import { canBuild, canTrain } from './sim/ages';
 import { Bot, type WorldSites } from './sim/bot';
 import { sfx, toggleMute, isMuted } from './ui/audio';
 import { warriorMesh, setPlayerColor, type WarriorKind } from './render/warriors';
@@ -532,6 +533,16 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     return { x: ((v.x + 1) / 2) * window.innerWidth, y: ((1 - v.y) / 2) * window.innerHeight };
   };
 
+  // Painel de seleção: retrato (emoji), HP, stats e fila com progresso (SPEC HUD §2).
+  const ICONS: Record<string, string> = {
+    villager: '🧑‍🌾', scout: '🐎', spearman: '🔱', archer: '🏹', longbow: '🏹',
+    crossbow: '🎯', manatarms: '🛡️', knight: '🐴', royalknight: '👑', monk: '🙏',
+    trader: '🧺', ram: '🐏', mangonel: '💣', towncenter: '🏠', house: '🏡',
+    farm: '🌾', barracks: '⚔️', archerrange: '🏹', stable: '🐴', market: '⚖️',
+    monastery: '⛪', outpost: '🗼', landmark: '🏰', wonder: '🌟', siegeworkshop: '⚙️',
+    university: '🎓'
+  };
+
   const refreshSelection = (): void => {
     const el = document.getElementById('selection');
     if (!el) return;
@@ -539,21 +550,40 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       el.textContent = 'No selection';
       return;
     }
-    const types = new Map<string, number>();
+    const parts: string[] = [];
+    const byType = new Map<string, { n: number; hp: number; max: number }>();
     for (const id of selected) {
       const u = sim.state.units.find((v) => v.id === id);
-      if (u) types.set(u.type, (types.get(u.type) ?? 0) + 1);
+      if (!u) continue;
+      const e = byType.get(u.type) ?? { n: 0, hp: 0, max: 0 };
+      e.n++;
+      e.hp += u.hp;
+      e.max += u.maxHp;
+      byType.set(u.type, e);
     }
-    el.textContent = [...types.entries()].map(([t, n]) => `${n}x ${t}`).join(' + ');
-    if (el.textContent === '') el.textContent = 'No selection';
+    for (const [t, e] of byType) {
+      const icon = ICONS[t] ?? '•';
+      let line = `${icon} ${e.n}x ${t} — HP ${Math.ceil(e.hp)}/${e.max}`;
+      const s = UNIT_COMBAT[t];
+      if (s) line += ` · ATK ${s.damage} ARM ${s.melee}/${s.ranged} RNG ${s.range}`;
+      parts.push(line);
+    }
     const blds = selectedB.map((id) => game.buildings.get(id)).filter((b) => b !== undefined);
-    if (blds.length > 0) {
-      const info = blds.map((b) => {
-        const q = b.queue.length > 0 ? ` [${b.queue.length} na fila]` : '';
-        return `${b.type}${b.built ? '' : ` ${(b.progress * 100) | 0}%`}${q}`;
-      }).join(' + ');
-      el.textContent = el.textContent === 'No selection' ? info : el.textContent + ' | ' + info;
+    for (const b of blds) {
+      const icon = ICONS[b.type] ?? '🏚️';
+      let line = `${icon} ${b.type} — HP ${Math.ceil(b.hp)}/${b.maxHp}`;
+      if (!b.built) line += ` — obra ${(b.progress * 100) | 0}%`;
+      if (b.queue.length > 0) {
+        const slots = b.queue.map((q) => {
+          const done = q.total > 0 ? 1 - q.time / q.total : 1;
+          const bars = Math.round(done * 5);
+          return `[${q.unit} ${'▓'.repeat(bars)}${'░'.repeat(5 - bars)}]`;
+        }).join(' ');
+        line += ` — fila ${slots}`;
+      }
+      parts.push(line);
     }
+    el.innerHTML = parts.map((p) => `<div>${p}</div>`).join('');
   };
 
   // ---- Grade de comandos contextual ----
@@ -562,9 +592,10 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     barracks: [{ unit: 'spearman', label: 'Lanceiro', time: 15 }],
     archerrange: [
       { unit: 'archer', label: 'Arqueiro', time: 15 },
-      { unit: 'longbow', label: 'Arco Longo', time: 15 }
+      { unit: 'longbow', label: 'Arco Longo', time: 15 },
+      { unit: 'handcannoneer', label: 'Bombardeiro', time: 35 }
     ],
-    stable: [{ unit: 'scout', label: 'Batedor', time: 25 }]
+    stable: [{ unit: 'scout', label: 'Batedor', time: 23 }]
   };
   const BUILDABLE = ['house', 'farm', 'mill', 'barracks', 'archerrange', 'stable', 'market'];
 
@@ -653,7 +684,8 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       const b = game.buildings.get(bid);
       if (!b || b.player !== 0 || !b.built) continue;
       for (const t of TRAINABLE[b.type] ?? []) {
-        btn(`train-${t.unit}`, t.label, `Treinar ${t.label}`, true, () => {
+        const allowed = canTrain(game.ageOf(0), t.unit);
+        btn(`train-${t.unit}`, t.label, allowed ? `Treinar ${t.label}` : `${t.label} (era superior)`, allowed, () => {
           game.trainUnit(bid, t.unit, t.time);
           refreshGrid();
           refreshSelection();
@@ -955,15 +987,26 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         const el = document.getElementById(id);
         if (el) el.textContent = v;
       };
+      // Aldeões por recurso (contagem de coletores ativos por fonte).
+      const per: Record<string, number> = { food: 0, wood: 0, gold: 0, stone: 0 };
+      for (const gr of game.gatherers.values()) {
+        const k = gr.source?.kind;
+        if (!k) continue;
+        if (k === 'wood') per.wood++;
+        else if (k === 'gold') per.gold++;
+        else if (k === 'stone') per.stone++;
+        else per.food++;
+      }
       if (stock) {
-        setText('res-food', `Food ${Math.floor(stock.food)}`);
-        setText('res-wood', `Wood ${Math.floor(stock.wood)}`);
-        setText('res-gold', `Gold ${Math.floor(stock.gold)}`);
-        setText('res-stone', `Stone ${Math.floor(stock.stone)}`);
+        setText('res-food', `Food ${Math.floor(stock.food)} (+${per.food})`);
+        setText('res-wood', `Wood ${Math.floor(stock.wood)} (+${per.wood})`);
+        setText('res-gold', `Gold ${Math.floor(stock.gold)} (+${per.gold})`);
+        setText('res-stone', `Stone ${Math.floor(stock.stone)} (+${per.stone})`);
         setText('res-pop', `Pop ${game.popUsed()[0] ?? 0}/${popCap([...game.buildings.values()])}`);
       }
       const ageEl = document.getElementById('age');
-      if (ageEl) ageEl.textContent = 'Age ' + (['I', 'II', 'III', 'IV'][game.ages[0]?.age - 1] ?? 'I');
+      const AGE_NAMES = ['Dark', 'Feudal', 'Castle', 'Imperial'];
+      if (ageEl) ageEl.textContent = AGE_NAMES[game.ages[0]?.age - 1] ?? 'Dark';
       // Painel lateral: ociosos, objetivos, placar, produção global.
       setText('idle-vil-n', String(game.idleVillagers(0).length));
       setText('idle-mil-n', String(game.idleMilitary(0).length));

@@ -2,7 +2,7 @@
 // Valores marcados VERIFICAR na spec: TRADE_RATE, TRADER_SPEED, WONDER_HOLD ainda não confirmados.
 
 export const TRADE_RATE = 0.15; // ouro por tile de distância por viagem (VERIFICAR)
-export const TRADER_SPEED = 1.2; // tiles por segundo (VERIFICAR)
+export const TRADER_SPEED = 1.0; // tiles por segundo (SPEC §1.5)
 export const WONDER_HOLD = 600; // segundos (10 min) sustentando a maravilha (VERIFICAR)
 
 export interface Trader {

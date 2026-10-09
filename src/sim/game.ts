@@ -44,7 +44,7 @@ import {
   type AgeState,
   type LandmarkDef,
 } from './ages';
-import { TECHS, TechState, armorBonus, attackMult, gatherMult, research, techTick, type GatherGroup } from './techs';
+import { TECHS, TechState, armorBonus, armorFlat, attackFlat, attackMult, gatherMult, otherMult, research, techTick, type GatherGroup } from './techs';
 import {
   ALBION_LANDMARKS,
   albionFarmCost,
@@ -75,7 +75,11 @@ const TRAIN_COSTS: Record<string, { food?: number; wood?: number; gold?: number;
   royalknight: { food: 140, gold: 100 },
   monk: { gold: 150 },
   trader: { wood: 60, gold: 60 },
-  ram: { wood: 200 }
+  ram: { wood: 200 },
+  mangonel: { wood: 400, gold: 200 }, // SPEC §1.4
+  trebuchet: { wood: 400, gold: 150 }, // SPEC §1.4
+  bombard: { wood: 350, gold: 500 }, // SPEC §1.4
+  handcannoneer: { food: 120, gold: 120 } // SPEC §1.5
 };
 const GENERIC_LANDMARKS: Record<2 | 3 | 4, [LandmarkDef, LandmarkDef]> = {
   2: [
@@ -500,20 +504,22 @@ export class Game {
     const ranged = s.range > 1;
     const atkM = techs ? attackMult(techs, ranged ? 'ranged' : 'melee') : 1;
     const armM = techs ? armorBonus(techs, ranged ? 'ranged' : 'melee') : 1;
+    const atkF = techs ? attackFlat(techs, ranged ? 'ranged' : 'melee') : 0;
+    const armF = techs ? armorFlat(techs, ranged ? 'ranged' : 'melee') : 0;
     // Escala por idade (SPEC); fora da tabela, base.
     const age = this.ageOf(u.player);
     const scaled = statsForAge(u.type, age);
     const baseDmg = scaled?.damage ?? s.damage;
     const baseMelee = scaled?.melee ?? s.melee;
     const baseRanged = scaled?.ranged ?? s.ranged;
-    let damage = baseDmg * atkM;
+    let damage = (baseDmg + atkF) * atkM;
     if (this.civs[u.player] === 'albion') {
       damage *= 1 + castleBonus(u.x, u.y, this.castleStructures());
     }
     return {
       id: u.id, type: u.type, player: u.player, x: u.x, y: u.y,
       hp: u.hp, maxHp: u.maxHp, range: s.range, damage,
-      meleeArmor: Math.round(baseMelee * armM), rangedArmor: Math.round(baseRanged * armM),
+      meleeArmor: Math.round((baseMelee + armF) * armM), rangedArmor: Math.round((baseRanged + armF) * armM),
       cooldown: s.cooldown, cdLeft: this.cooldowns.get(u.id) ?? 0, age
     };
   }
@@ -612,10 +618,11 @@ export class Game {
       if (hits.length > 0) {
         const victim = this.sim.state.units.find((u) => u.id === targetId);
         if (victim) victim.hp = t.hp;
-        // Carga do cavaleiro real: +dano no primeiro golpe após correr 3+ tiles.
+        // Carga do cavaleiro real: base +3, ×(10/3) com Cantled Saddles (SPEC §1.3).
         const atk = this.sim.state.units.find((u) => u.id === attackerId);
         if (victim && atk && atk.type === 'royalknight' && (this.chargeAcc.get(attackerId) ?? 0) >= 3) {
-          victim.hp -= knightChargeBonus();
+          const techs = this.techs[atk.player];
+          victim.hp -= knightChargeBonus() * (techs ? otherMult(techs, 'charge') : 1);
         }
         this.chargeAcc.set(attackerId, 0);
       }

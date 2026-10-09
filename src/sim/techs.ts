@@ -26,7 +26,8 @@ export interface TechDef {
     // Alvo do efeito. Para 'gather' é um ou mais grupos de GatherGroup separados por '|'
     // (ex.: 'gold|stone'). Para 'other' é um rótulo livre (ex.: 'siege').
     target: string;
-    mult: number; // multiplicador final (ex.: 1.1)
+    mult: number; // multiplicador final (ex.: 1.1; 1.0 quando o efeito é só flat)
+    flat: number; // soma fixa (SPEC §3.1: +1 de dano/armadura por nível; 0 quando só mult)
   };
   desc: string;
 }
@@ -58,7 +59,6 @@ function tierLine(
   building: TechBuilding,
   kind: 'meleeAtk' | 'meleeArmor' | 'rangedAtk' | 'rangedArmor',
   costs: TechCost[],
-  mult: number,
   label: string,
 ): TechDef[] {
   return TIERS.map((t, i) => ({
@@ -67,33 +67,37 @@ function tierLine(
     age: t.age,
     cost: costs[i] ?? {},
     time: t.time,
-    effect: { kind, target: kind.startsWith('melee') ? 'melee' : 'ranged', mult },
+    // SPEC §3.1: +1 fixo por nível (mult 1.0).
+    effect: { kind, target: kind.startsWith('melee') ? 'melee' : 'ranged', mult: 1.0, flat: 1 },
     desc: `${label} ${ROMAN[i] ?? ''}`.trim(),
   }));
 }
 
 const MILITARY: TechDef[] = [
-  ...tierLine('melee-atk', 'blacksmith', 'meleeAtk', MELEE_ATK_COSTS, 1.1, 'Dano melee'),
-  ...tierLine('melee-armor', 'blacksmith', 'meleeArmor', MELEE_ARMOR_COSTS, 1.1, 'Armadura melee'),
-  ...tierLine('ranged-atk', 'blacksmith', 'rangedAtk', RANGED_ATK_COSTS, 1.1, 'Dano à distância'),
-  ...tierLine('ranged-armor', 'blacksmith', 'rangedArmor', RANGED_ARMOR_COSTS, 1.1, 'Armadura à distância'),
+  ...tierLine('melee-atk', 'blacksmith', 'meleeAtk', MELEE_ATK_COSTS, 'Dano melee'),
+  ...tierLine('melee-armor', 'blacksmith', 'meleeArmor', MELEE_ARMOR_COSTS, 'Armadura melee'),
+  ...tierLine('ranged-atk', 'blacksmith', 'rangedAtk', RANGED_ATK_COSTS, 'Dano à distância'),
+  ...tierLine('ranged-armor', 'blacksmith', 'rangedArmor', RANGED_ARMOR_COSTS, 'Armadura à distância'),
 ];
 
 const GATHER: TechDef[] = [
-  { id: 'horticulture', building: 'university', age: 2, cost: { food: 50, gold: 100 }, time: 30, effect: { kind: 'gather', target: 'food', mult: 1.1 }, desc: 'Coleta de comida +10% (exceto caça)' },
-  { id: 'fertilization', building: 'university', age: 3, cost: { food: 100, gold: 200 }, time: 45, effect: { kind: 'gather', target: 'food', mult: 1.1 }, desc: 'Comida +10% (exceto caça)' },
-  { id: 'precision', building: 'university', age: 4, cost: { food: 150, gold: 300 }, time: 60, effect: { kind: 'gather', target: 'food', mult: 1.1 }, desc: 'Comida +10% (exceto caça)' },
-  { id: 'survival', building: 'university', age: 2, cost: { food: 50, gold: 100 }, time: 30, effect: { kind: 'gather', target: 'hunt', mult: 1.15 }, desc: 'Caça +15%' },
-  { id: 'double-broadax', building: 'university', age: 2, cost: { food: 50, gold: 100 }, time: 30, effect: { kind: 'gather', target: 'wood', mult: 1.15 }, desc: 'Madeira +15%' },
-  { id: 'lumber-preservation', building: 'university', age: 3, cost: { food: 100, gold: 200 }, time: 45, effect: { kind: 'gather', target: 'wood', mult: 1.15 }, desc: 'Madeira +15%' },
-  { id: 'crosscut', building: 'university', age: 4, cost: { food: 150, gold: 300 }, time: 60, effect: { kind: 'gather', target: 'wood', mult: 1.15 }, desc: 'Madeira +15%' },
-  { id: 'specialized-pick', building: 'university', age: 2, cost: { food: 50, gold: 100 }, time: 30, effect: { kind: 'gather', target: 'gold|stone', mult: 1.15 }, desc: 'Ouro/pedra +15%' },
-  { id: 'shaft-mining', building: 'university', age: 3, cost: { food: 100, gold: 200 }, time: 45, effect: { kind: 'gather', target: 'gold|stone', mult: 1.15 }, desc: 'Ouro/pedra +15%' },
+  { id: 'horticulture', building: 'university', age: 2, cost: { food: 50, gold: 100 }, time: 30, effect: { kind: 'gather', target: 'food', mult: 1.1, flat: 0 }, desc: 'Coleta de comida +10% (exceto caça)' },
+  { id: 'fertilization', building: 'university', age: 3, cost: { food: 100, gold: 200 }, time: 45, effect: { kind: 'gather', target: 'food', mult: 1.1, flat: 0 }, desc: 'Comida +10% (exceto caça)' },
+  { id: 'precision', building: 'university', age: 4, cost: { food: 150, gold: 300 }, time: 60, effect: { kind: 'gather', target: 'food', mult: 1.1, flat: 0 }, desc: 'Comida +10% (exceto caça)' },
+  { id: 'survival', building: 'university', age: 2, cost: { food: 50, gold: 100 }, time: 30, effect: { kind: 'gather', target: 'hunt', mult: 1.15, flat: 0 }, desc: 'Caça +15%' },
+  { id: 'double-broadax', building: 'university', age: 2, cost: { food: 50, gold: 100 }, time: 30, effect: { kind: 'gather', target: 'wood', mult: 1.15, flat: 0 }, desc: 'Madeira +15%' },
+  { id: 'lumber-preservation', building: 'university', age: 3, cost: { food: 100, gold: 200 }, time: 45, effect: { kind: 'gather', target: 'wood', mult: 1.15, flat: 0 }, desc: 'Madeira +15%' },
+  { id: 'crosscut', building: 'university', age: 4, cost: { food: 150, gold: 300 }, time: 60, effect: { kind: 'gather', target: 'wood', mult: 1.15, flat: 0 }, desc: 'Madeira +15%' },
+  { id: 'specialized-pick', building: 'university', age: 2, cost: { food: 50, gold: 100 }, time: 30, effect: { kind: 'gather', target: 'gold|stone', mult: 1.15, flat: 0 }, desc: 'Ouro/pedra +15%' },
+  { id: 'shaft-mining', building: 'university', age: 3, cost: { food: 100, gold: 200 }, time: 45, effect: { kind: 'gather', target: 'gold|stone', mult: 1.15, flat: 0 }, desc: 'Ouro/pedra +15%' },
 ];
 
 const OTHER: TechDef[] = [
-  { id: 'ballistics', building: 'university', age: 3, cost: { food: 100, gold: 250 }, time: 45, effect: { kind: 'other', target: 'siege', mult: 1.2 }, desc: 'Cerco +20% (VERIFICAR)' },
-  { id: 'chemistry', building: 'university', age: 4, cost: { food: 150, gold: 350 }, time: 60, effect: { kind: 'other', target: 'siege|gunpowder', mult: 1.2 }, desc: 'Cerco/pólvora +20% (VERIFICAR)' },
+  { id: 'ballistics', building: 'university', age: 3, cost: { food: 100, gold: 250 }, time: 45, effect: { kind: 'other', target: 'siege', mult: 1.2, flat: 0 }, desc: 'Cerco +20% (VERIFICAR)' },
+  { id: 'chemistry', building: 'university', age: 4, cost: { food: 150, gold: 350 }, time: 60, effect: { kind: 'other', target: 'siege|gunpowder', mult: 1.2, flat: 0 }, desc: 'Cerco/pólvora +20% (VERIFICAR)' },
+  // Cantled Saddles (idade 3): carga do cavaleiro real +3 → +10 (SPEC §1.3).
+  // Custo VERIFICAR. Registrada na ferraria (sem techs de estábulo nesta fase).
+  { id: 'cantled-saddles', building: 'blacksmith', age: 3, cost: { food: 150, gold: 150 }, time: 45, effect: { kind: 'other', target: 'charge', mult: 10 / 3, flat: 0 }, desc: 'Carga +3 → +10 (custo VERIFICAR)' },
 ];
 
 const ALL: TechDef[] = [...MILITARY, ...GATHER, ...OTHER];
@@ -171,6 +175,27 @@ export function attackMult(s: TechState, kind: 'melee' | 'ranged'): number {
 export function armorBonus(s: TechState, kind: 'melee' | 'ranged'): number {
   const want = kind === 'melee' ? 'meleeArmor' : 'rangedArmor';
   return productOf(s, (d) => d.effect.kind === want);
+}
+
+function sumOf(s: TechState, pred: (d: TechDef) => boolean): number {
+  let total = 0;
+  for (const id of s.researched) {
+    const def = TECHS[id];
+    if (def && pred(def)) total += def.effect.flat;
+  }
+  return total;
+}
+
+/** Soma fixa de dano (SPEC §3.1: +1 por nível de ferraria). */
+export function attackFlat(s: TechState, kind: 'melee' | 'ranged'): number {
+  const want = kind === 'melee' ? 'meleeAtk' : 'rangedAtk';
+  return sumOf(s, (d) => d.effect.kind === want);
+}
+
+/** Soma fixa de armadura (SPEC §3.1: +1 por nível). */
+export function armorFlat(s: TechState, kind: 'melee' | 'ranged'): number {
+  const want = kind === 'melee' ? 'meleeArmor' : 'rangedArmor';
+  return sumOf(s, (d) => d.effect.kind === want);
 }
 
 /** Multiplicador de coleta para um grupo de recurso (produto das techs 'gather' que o cobrem). */
