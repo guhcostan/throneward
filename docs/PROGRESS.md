@@ -248,3 +248,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-09 (Round 58)
 - Bot vs bot (easy, economia real): Feudal 5min, Castle 10min, batalhas com baixas, vencedor landmarks aos 14min. Arco crível.
+
+## Estado 2026-10-09 (Round 60)
+- Tag v11 (economia viva). CI triplo verde 37883410148. Deploy prod.
