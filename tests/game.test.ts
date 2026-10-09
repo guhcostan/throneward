@@ -286,3 +286,20 @@ describe('Game:cura', () => {
     expect(far.hp).toBe(10);
   });
 });
+
+describe('Game:muralha', () => {
+  it('monta arqueiro em pedra própria; melee não monta; mover desmonta', () => {
+    const g = new Game(31, 1);
+    g.mapSize = 64;
+    g.stocks[0].stock.stone = 1000;
+    const id = g.placeWall(0, 'stone', 0, 0, 0, 2);
+    expect(id).toBeGreaterThan(0);
+    const ar = g.sim.spawnUnit('archer', 0, 0, 1);
+    const sp = g.sim.spawnUnit('spearman', 0, 0, 1);
+    expect(g.mountWall(sp.id, id)).toBe(false); // melee não monta
+    expect(g.mountWall(ar.id, id)).toBe(true);
+    expect(ar.elev).toBe(1);
+    g.sim.commandMove([ar.id], 10, 10);
+    expect(ar.elev).toBe(0); // nova ordem desmonta
+  });
+});

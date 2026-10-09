@@ -370,6 +370,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     | { type: 'attack'; unitId: number; targetId: number }
     | { type: 'siege'; unitId: number; buildingId: number }
     | { type: 'gate'; player: number; wallId: number; gate: boolean }
+    | { type: 'mount'; unitId: number; wallId: number }
     | { type: 'spawn'; unit: string; player: number; x: number; y: number }
     | { type: 'advance'; player: number; slot: 0 | 1 }
     | { type: 'agebuilder'; player: number; unitId: number }
@@ -453,6 +454,9 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       }
       if (cmd.type === 'gate') {
         return { ok: game.setGate(cmd.wallId, cmd.player, cmd.gate) };
+      }
+      if (cmd.type === 'mount') {
+        return { ok: game.mountWall(cmd.unitId, cmd.wallId) };
       }
       if (cmd.type === 'spawn') {
         // TEST HOOK: spawn a unit (e2e only).
@@ -548,7 +552,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         unitNodes.set(u.id, node);
         unitLayer.add(node);
       }
-      node.position.set(u.x, groundH(terrain, u.x, u.y), u.y);
+      node.position.set(u.x, groundH(terrain, u.x, u.y) + (u.elev > 0 ? 2.5 : 0), u.y);
     }
     for (const id of [...unitNodes.keys()]) {
       if (!live.has(id)) {
@@ -889,6 +893,34 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       for (const m of military) game.orderSiege(m.id, foeB.id);
       sfx.attack();
       return;
+    }
+    // Montar muralha de pedra própria com à distância selecionados.
+    const ranged = mine.filter(
+      (u) => u.type === 'archer' || u.type === 'longbow' || u.type === 'crossbow' || u.type === 'arbaletrier'
+    );
+    if (ranged.length > 0) {
+      const off = terrain.size / 2;
+      let wallId: number | null = null;
+      let bd = Infinity;
+      for (const w of game.walls.values()) {
+        if (w.player !== 0 || w.kind !== 'stone') continue;
+        for (const t of game.wallTilesOf(w.id)) {
+          const d = Math.hypot(t.x - off - wx, t.y - off - wz);
+          if (d <= 3 && d < bd) {
+            bd = d;
+            wallId = w.id;
+          }
+        }
+      }
+      if (wallId !== null) {
+        let any = false;
+        for (const r of ranged) any = game.mountWall(r.id, wallId) || any;
+        if (any) {
+          sfx.order();
+          refreshSelection();
+          return;
+        }
+      }
     }
     const villagers = mine.filter((u) => u.type === 'villager');
     if (villagers.length > 0) {

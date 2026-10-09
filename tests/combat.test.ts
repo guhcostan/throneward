@@ -172,3 +172,14 @@ describe('combat — escala por idade (SPEC)', () => {
     expect(UNIT_COMBAT.knight.hp - k3.hp).toBe(26);
   });
 });
+
+describe('combat — elevação (muralha)', () => {
+  it('melee do chão não alcança alvo elevado; à distância alcança', () => {
+    const sp = make({ type: 'spearman', player: 0, x: 0, y: 0 });
+    const up = make({ type: 'archer', player: 1, x: 0.5, y: 0, id: 2, elev: 1 });
+    expect(inRange(sp, up)).toBe(false);
+    expect(attackTick(sp, up, 1).hits).toEqual([]);
+    const ar = make({ type: 'archer', player: 0, x: 0, y: 0 });
+    expect(inRange(ar, up)).toBe(true);
+  });
+});

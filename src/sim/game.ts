@@ -543,12 +543,43 @@ export class Game {
     if (this.civs[u.player] === 'albion') {
       damage *= 1 + castleBonus(u.x, u.y, this.castleStructures());
     }
+    // No alto da muralha: +1 de alcance para distância (THR v0).
+    const range = s.range > 1 && u.elev > 0 ? s.range + 1 : s.range;
     return {
       id: u.id, type: u.type, player: u.player, x: u.x, y: u.y,
-      hp: u.hp, maxHp: u.maxHp, range: s.range, damage,
+      hp: u.hp, maxHp: u.maxHp, range, damage,
       meleeArmor: Math.round((baseMelee + armF) * armM), rangedArmor: Math.round((baseRanged + armF) * armM),
-      cooldown: s.cooldown, cdLeft: this.cooldowns.get(u.id) ?? 0, age
+      cooldown: s.cooldown, cdLeft: this.cooldowns.get(u.id) ?? 0, age, elev: u.elev
     };
+  }
+
+  // Monta unidade à distância em muralha de PEDRA própria (teletransporte abstraído).
+  // Retorna false se inválido (não-ranged, muralha alheia/paliçada, longe >3 tiles).
+  mountWall(unitId: number, wallId: number): boolean {
+    const u = this.sim.state.units.find((v) => v.id === unitId);
+    const w = this.walls.get(wallId);
+    if (!u || !w || w.player !== u.player || w.kind !== 'stone') return false;
+    const s = UNIT_COMBAT[u.type];
+    if (!s || s.range <= 1) return false;
+    const tiles = this.wallTilesOf(wallId);
+    let best: { x: number; y: number } | null = null;
+    let bd = Infinity;
+    const off = this.mapSize / 2;
+    for (const t of tiles) {
+      const wx = t.x - off;
+      const wy = t.y - off;
+      const d = Math.hypot(wx - u.x, wy - u.y);
+      if (d <= 3 && d < bd) {
+        bd = d;
+        best = { x: wx, y: wy };
+      }
+    }
+    if (!best) return false;
+    u.x = best.x;
+    u.y = best.y;
+    u.queue = [];
+    u.elev = 1;
+    return true;
   }
 
   // Avança o mundo em dt segundos. Ordem: idades, tecnologias, movimento, coleta, construção/produção, combate.

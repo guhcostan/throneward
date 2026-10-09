@@ -19,6 +19,8 @@ export interface Unit {
   hp: number;
   maxHp: number;
   queue: { x: number; y: number }[];
+  /** Elevação (0 = chão; 1 = sobre muralha de pedra). Nova ordem de movimento desmonta. */
+  elev: number;
 }
 
 export interface GameState {
@@ -101,7 +103,7 @@ export class Sim {
 
   spawnUnit(type: string, player: number, x: number, y: number, hp?: number): Unit {
     const base = hp ?? UNIT_HP[type] ?? 100;
-    const u: Unit = { id: this.nextUnitId++, type, player, x, y, hp: base, maxHp: base, queue: [] };
+    const u: Unit = { id: this.nextUnitId++, type, player, x, y, hp: base, maxHp: base, queue: [], elev: 0 };
     this.state.units.push(u);
     return u;
   }
@@ -111,6 +113,7 @@ export class Sim {
       const u = this.state.units.find((v) => v.id === id);
       if (!u) continue;
       if (!queueShift) u.queue = [];
+      u.elev = 0; // nova ordem desmonta da muralha
       const routed = this.route(u.player, u.x, u.y, x, y);
       for (const p of routed) u.queue.push(p);
     }
@@ -155,7 +158,7 @@ export class Sim {
   hash(): string {
     // Simple deterministic hash for e2e: same seed+commands => same hash.
     let h = 2166136261;
-    const s = JSON.stringify([this.state.seed, this.state.tick, this.state.resources, this.state.units.map((u) => [u.id, u.type, u.x.toFixed(4), u.y.toFixed(4), u.hp, u.queue])]);
+    const s = JSON.stringify([this.state.seed, this.state.tick, this.state.resources, this.state.units.map((u) => [u.id, u.type, u.x.toFixed(4), u.y.toFixed(4), u.hp, u.elev, u.queue])]);
     for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
     return (h >>> 0).toString(16);
   }

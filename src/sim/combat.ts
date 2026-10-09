@@ -95,6 +95,7 @@ export interface Fighter {
   cooldown: number; // segundos entre ataques (cadência)
   cdLeft: number; // segundos restantes até o próximo ataque
   age?: number; // idade do dono (1-4); sem ela, bônus/dano da linha de base
+  elev?: number; // elevação (0 = chão; 1 = muralha); melee do chão não alcança
 }
 
 export interface UnitCombatStats {
@@ -162,9 +163,12 @@ export function hpForAge(type: string, age: number): number | undefined {
   return line[Math.max(0, Math.min(3, age - 1))];
 }
 
-/** Alcance efetivo: range 0 = melee (1.0). Distância euclidiana ≤ alcance. */
+/** Alcance efetivo: range 0 = melee (1.0). Distância euclidiana ≤ alcance.
+ * Alvo elevado (muralha) só é atingido por ataque à distância ou cerco vindo de cima:
+ * melee do chão não alcança. */
 export function inRange(a: Fighter, b: Fighter): boolean {
   const reach = a.range > 0 ? a.range : 1.0;
+  if ((b.elev ?? 0) > 0 && (a.elev ?? 0) === 0 && a.range <= 1) return false;
   return Math.hypot(b.x - a.x, b.y - a.y) <= reach;
 }
 
