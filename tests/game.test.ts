@@ -247,3 +247,24 @@ describe('Game:landmarks', () => {
     expect(g.winner).toEqual({ player: 0, reason: 'annihilation' });
   });
 });
+
+describe('Game:carga', () => {
+  it('cavaleiro real com corrida dá +3 no primeiro golpe', () => {
+    const run = (startX: number): number => {
+      const g = new Game(23, 2);
+      const rk = g.sim.spawnUnit('royalknight', 0, startX, 0);
+      const v = g.sim.spawnUnit('villager', 1, 10, 0);
+      g.sim.commandMove([rk.id], 9, 0);
+      // Anda até chegar (sem ordem de ataque ainda).
+      for (let i = 0; i < 1200 && Math.hypot(rk.x - 9, rk.y) > 0.01; i++) g.tick(DT);
+      g.orderAttack(rk.id, v.id);
+      // Exatos 2 golpes (cadência 1,5s: golpes em t=0 e t=1,5s; 100 ticks = 1,67s).
+      for (let i = 0; i < 100; i++) g.tick(DT);
+      return g.sim.state.units.find((u) => u.id === v.id)?.hp ?? 0;
+    };
+    // Sem corrida (adjacente): 50 − 38 = 12 após 2 golpes.
+    expect(run(9)).toBe(12);
+    // Com corrida de 9 tiles: 50 − 41 = 9 após 2 golpes.
+    expect(run(0)).toBe(9);
+  });
+});

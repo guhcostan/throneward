@@ -55,6 +55,7 @@ import {
 import {
   GALLIA_LANDMARKS,
   galliaStableMult,
+  knightChargeBonus,
   type GalLandmark,
 } from './civs/gallia';
 import { RELIC_RATE, RelicState, drop as relicDrop, garrison as relicGarrison, pickup as relicPickup } from './relics';
@@ -140,6 +141,9 @@ export class Game {
   // Combate: alvo por atacante + cooldown restante por atacante.
   private targets = new Map<number, number>();
   private cooldowns = new Map<number, number>();
+  // Carga: deslocamento acumulado desde o último golpe (bônus do cavaleiro real).
+  private lastPos = new Map<number, { x: number; y: number }>();
+  private chargeAcc = new Map<number, number>();
   // Cerco a prédios: atacante -> buildingId.
   private siegeTargets = new Map<number, number>();
   // Landmarks físicos por jogador (entidades colocadas ao concluir cada avanço).
@@ -583,6 +587,16 @@ export class Game {
       }
     }
 
+    // Carga: deslocamento de TODAS as unidades a cada tick (independe de alvo).
+    for (const u of this.sim.state.units) {
+      if (u.hp <= 0) continue;
+      const prev = this.lastPos.get(u.id);
+      if (prev) {
+        this.chargeAcc.set(u.id, (this.chargeAcc.get(u.id) ?? 0) + Math.hypot(u.x - prev.x, u.y - prev.y));
+      }
+      this.lastPos.set(u.id, { x: u.x, y: u.y });
+    }
+
     // Combate entre unidades (ordens de ataque).
     for (const attackerId of sortedKeys(this.targets)) {
       const targetId = this.targets.get(attackerId);
@@ -598,6 +612,12 @@ export class Game {
       if (hits.length > 0) {
         const victim = this.sim.state.units.find((u) => u.id === targetId);
         if (victim) victim.hp = t.hp;
+        // Carga do cavaleiro real: +dano no primeiro golpe após correr 3+ tiles.
+        const atk = this.sim.state.units.find((u) => u.id === attackerId);
+        if (victim && atk && atk.type === 'royalknight' && (this.chargeAcc.get(attackerId) ?? 0) >= 3) {
+          victim.hp -= knightChargeBonus();
+        }
+        this.chargeAcc.set(attackerId, 0);
       }
     }
 
@@ -704,6 +724,8 @@ export class Game {
         this.targets.delete(id);
         this.cooldowns.delete(id);
         this.siegeTargets.delete(id);
+        this.lastPos.delete(id);
+        this.chargeAcc.delete(id);
       }
       for (const [attacker, target] of this.targets) {
         if (dead.has(target)) this.targets.delete(attacker);
