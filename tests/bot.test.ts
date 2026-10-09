@@ -188,3 +188,30 @@ describe('bot vs bot', () => {
     expect(new Set([e, m, h]).size).toBeGreaterThan(1);
   });
 });
+
+describe('bot trade', () => {
+  it('constrói 2 mercados e põe mercador em rota', () => {
+    const g = new Game(70, 1);
+    g.ages[0].age = 2;
+    g.stocks[0].stock.wood = 2000;
+    g.stocks[0].stock.food = 2000;
+    g.stocks[0].stock.gold = 2000;
+    const tc = g.orderBuild(0, 'towncenter', 0, 0);
+    const tcb = g.buildings.get(tc)!;
+    tcb.progress = 1;
+    tcb.built = true;
+    tcb.hp = tcb.maxHp;
+    for (let i = 0; i < 5; i++) g.sim.spawnUnit('villager', 0, i, 1);
+    const bot = new Bot(g, 0, 'medium', {
+      food: [], wood: [], gold: [], stone: [],
+      dropoff: { x: 0, y: 0 }
+    });
+    for (let i = 0; i < Math.round(600 / DT); i++) {
+      bot.update(DT);
+      g.tick(DT);
+    }
+    const markets = [...g.buildings.values()].filter((b) => b.type === 'market' && b.built).length;
+    expect(markets).toBeGreaterThanOrEqual(2);
+    expect(g.traders.size).toBeGreaterThanOrEqual(1);
+  });
+});

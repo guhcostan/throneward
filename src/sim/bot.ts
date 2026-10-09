@@ -40,6 +40,7 @@ export class Bot {
   sites: WorldSites;
   private timer = 0;
   private ageBuildersAssigned = new Set<number>();
+  private routedTraders = new Set<number>();
 
   constructor(game: Game, player: number, difficulty: Difficulty, sites: WorldSites) {
     this.game = game;
@@ -58,6 +59,7 @@ export class Bot {
     this.produce();
     this.combat();
     this.siege();
+    this.trade();
     this.sacred();
   }
 
@@ -160,8 +162,8 @@ export class Bot {
     const g = this.game;
     const age = g.ageOf(this.player);
     const want: string[] = [];
-    if (age >= 2) want.push('barracks');
-    if (age >= 3) want.push('archerrange', 'stable', 'siegeworkshop');
+    if (age >= 2) want.push('barracks', 'market');
+    if (age >= 3) want.push('archerrange', 'stable', 'siegeworkshop', 'monastery');
     const h = this.home();
     let i = 0;
     for (const type of want) {
@@ -282,8 +284,38 @@ export class Bot {
     }
   }
 
-  private sacred(): void {
+  // Comércio: 2 mercados distantes + mercador com rota (ouro pós-minas).
+  private trade(): void {
     const g = this.game;
+    if (g.ageOf(this.player) < 2) return;
+    const markets = [...g.buildings.values()].filter(
+      (b) => b.player === this.player && b.type === 'market' && b.built
+    );
+    const h = this.home();
+    if (markets.length < 2) {
+      const vils = this.mine().filter((u) => u.type === 'villager');
+      if (vils.length === 0) return;
+      // Segundo mercado longe do primeiro (ou do TC): rota precisa de distância.
+      const ax = markets.length > 0 ? markets[0].x : h.x;
+      const ay = markets.length > 0 ? markets[0].y : h.y;
+      const id = g.orderBuild(this.player, 'market', ax + 18, ay);
+      if (id !== -1) g.addBuilder(id, vils[vils.length - 1].id);
+      return;
+    }
+    const traders = this.mine().filter((u) => u.type === 'trader');
+    if (traders.length === 0) {
+      const m0 = markets[0];
+      if (m0.queue.length < 1) g.trainUnit(m0.id, 'trader', 30);
+      return;
+    }
+    for (const t of traders) {
+      if (this.routedTraders.has(t.id)) continue;
+      const id = g.assignRoute(t.id, markets[0].id, markets[1].id);
+      if (id !== -1) this.routedTraders.add(t.id);
+    }
+  }
+
+  private sacred(): void {    const g = this.game;
     if (g.ageOf(this.player) < 3) return;
     const monks = this.mine().filter((u) => u.type === 'monk');
     if (monks.length === 0) return;
