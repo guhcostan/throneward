@@ -27,6 +27,27 @@ test('skirmish menu starts game with chosen bots', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('skirmish menu supports 3 bots (4 players)', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/');
+
+  await page.selectOption('#sel-civ', 'albion');
+  await page.selectOption('#sel-bots', '3');
+  await page.selectOption('#sel-diff', 'easy');
+  await page.click('#btn-start');
+  await expect(page.locator('#menu')).toBeHidden();
+
+  const st = await page.evaluate(() => (window as unknown as { __game: { getState: () => {
+    units: { player: number }[];
+    scores: number[];
+  } } }).__game.getState());
+  const players = new Set(st.units.map((u) => u.player));
+  expect(players.size).toBe(4);
+  expect(st.scores.length).toBe(4);
+  expect(errors).toEqual([]);
+});
+
 test('idle buttons select units', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
