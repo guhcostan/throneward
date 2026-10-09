@@ -7,7 +7,7 @@
   <style>
     html,body{margin:0;height:100%;background:#0e0f12;color:#e8e6df;font-family:system-ui,sans-serif}
     #app{position:fixed;inset:0}
-    #hud-top{position:fixed;top:0;left:0;right:0;display:flex;gap:12px;padding:8px 12px;background:rgba(10,10,12,.72);z-index:5}
+    #hud-top{position:fixed;top:0;left:0;right:0;display:flex;gap:12px;padding:8px 12px;background:rgba(10,10,12,.72);z-index:5;font-size:15px}
     #minimap{position:fixed;left:12px;bottom:12px;width:220px;height:220px;background:#14161a;border:1px solid #444;z-index:5}
     #cmd-grid{position:fixed;right:12px;bottom:12px;display:grid;grid-template-columns:repeat(4,56px);gap:6px;z-index:5}
     #cmd-grid button{height:56px}
@@ -34,7 +34,7 @@
   </div>
   <canvas id="minimap" width="220" height="220"></canvas>
   <div id="selection">No selection</div>
-  <div id="side-panel" style="position:fixed;right:12px;top:48px;width:230px;background:rgba(10,10,12,.72);padding:8px;font-size:12px;z-index:5">
+  <div id="side-panel" style="position:fixed;right:12px;top:48px;width:230px;background:rgba(10,10,12,.72);padding:8px;font-size:13px;z-index:5">
     <div><button id="btn-idle-vil">Aldeão ocioso (<span id="idle-vil-n">0</span>)</button>
     <button id="btn-idle-mil">Tropa ociosa (<span id="idle-mil-n">0</span>)</button></div>
     <div id="objectives" style="margin-top:6px">Objetivos: —</div>

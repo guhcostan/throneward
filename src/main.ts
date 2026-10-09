@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Sim } from './sim/sim';
 import { Game } from './sim/game';
 import { generateTerrain, blockedGrid, type TerrainData } from './sim/terrain';
-import { createCamera, attachCamera, cameraPos, type CameraState } from './render/camera';
+import { createCamera, attachCamera, cameraPos, rotate, type CameraState } from './render/camera';
 import { heightColor, forestInstances, minimapImage } from './render/world';
 import { Settlement, buildingFootprint } from './render/settlement';
 import type { BuildingKind } from './render/buildings';
@@ -1185,6 +1185,22 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         selectedB = [];
         refreshSelection();
         refreshGrid();
+      }
+    }
+    const kl = e.key.toLowerCase();
+    if (kl === 'q' || kl === 'e') {
+      const next = rotate(cam, kl === 'q' ? 0.2 : -0.2);
+      cam.yaw = next.yaw;
+      applyCamera();
+      e.preventDefault();
+    } else if (e.key === ' ') {
+      // Espaço: centra no TC próprio (como no original).
+      const tc = [...game.buildings.values()].find((b) => b.player === 0 && b.type === 'towncenter');
+      if (tc) {
+        cam.tx = tc.x;
+        cam.tz = tc.y;
+        applyCamera();
+        e.preventDefault();
       }
     }
   });
