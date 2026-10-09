@@ -932,9 +932,12 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     // Vitória (aniquilação/sagrados/maravilha/landmarks) calculada no Game.tick.
     syncUnits();
     if (frameN++ % 15 === 0) {
-      updateMinimap(terrain, sim, cam, (u) => u.player === 0 || game.isSeenByUnit(u, 0));
+      // Minimapa e véu a cada 1s (encode é caro; 4x/s não agrega).
+      if (frameN % 60 === 0) {
+        updateMinimap(terrain, sim, cam, (u) => u.player === 0 || game.isSeenByUnit(u, 0));
+        updateShroud();
+      }
       syncSettlement();
-      updateShroud();
       refreshGrid();
       if (game.winner && !bannerShown.v) {
         bannerShown.v = true;

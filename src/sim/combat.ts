@@ -84,6 +84,20 @@ export const UNIT_COMBAT: Record<string, UnitCombatStats> = {
   ram: { hp: 370, damage: 200, range: 0, melee: 0, ranged: 0, cooldown: 5.12 }
 };
 
+// HP por idade (SPEC: homem de armas 100/120/155/180 I–IV; cavaleiro real 190/230/270 II–IV).
+// Dano/armadura por idade ainda estáticos (VERIFICAR — ver BALANCE.md).
+export const HP_BY_AGE: Record<string, number[]> = {
+  manatarms: [100, 120, 155, 180],
+  royalknight: [190, 190, 230, 270]
+};
+
+/** HP de treino para o tipo na idade (1-4); fora da tabela, undefined (usa o padrão). */
+export function hpForAge(type: string, age: number): number | undefined {
+  const line = HP_BY_AGE[type];
+  if (!line) return undefined;
+  return line[Math.max(0, Math.min(3, age - 1))];
+}
+
 /** Alcance efetivo: range 0 = melee (1.0). Distância euclidiana ≤ alcance. */
 export function inRange(a: Fighter, b: Fighter): boolean {
   const reach = a.range > 0 ? a.range : 1.0;

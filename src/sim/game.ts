@@ -23,7 +23,7 @@ import {
   queueUnit,
   type Building,
 } from './construction';
-import { UNIT_COMBAT, attackTick, dealDamage, type Fighter } from './combat';
+import { UNIT_COMBAT, attackTick, dealDamage, hpForAge, type Fighter } from './combat';
 import {
   TOWER_DEFS,
   WALL_DEFS,
@@ -64,12 +64,12 @@ import { checkVictory, goldFor, traderTick, tripTime, type Trader } from './trad
 // Custos de treino por unidade (THR v0 VERIFICAR — docs/spec-units.md).
 const TRAIN_COSTS: Record<string, { food?: number; wood?: number; gold?: number; stone?: number }> = {
   villager: { food: 50 },
-  scout: { food: 60 },
+  scout: { food: 65 }, // SPEC (era 60 THR v0)
   spearman: { food: 60, wood: 20 },
   archer: { food: 30, wood: 50 },
   longbow: { food: 30, wood: 50 },
   crossbow: { food: 80, gold: 40 },
-  manatarms: { food: 100, gold: 20 },
+  manatarms: { food: 90, gold: 20 }, // SPEC (era 100 THR v0)
   knight: { food: 140, gold: 100 },
   royalknight: { food: 140, gold: 100 },
   monk: { gold: 150 },
@@ -570,7 +570,10 @@ export class Game {
         trained.push({ building: b.id, unit });
         const x = b.rally ? b.rally.x : b.x + SPAWN_OFFSET_X;
         const y = b.rally ? b.rally.y : b.y;
-        this.sim.spawnUnit(unit, b.player, x, y);
+        // HP por idade (SPEC: MAA e cavaleiro real escalam).
+        const aged = hpForAge(unit, this.ageOf(b.player));
+        if (aged === undefined) this.sim.spawnUnit(unit, b.player, x, y);
+        else this.sim.spawnUnit(unit, b.player, x, y, aged);
       }
     }
 

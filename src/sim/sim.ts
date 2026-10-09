@@ -29,27 +29,27 @@ export interface GameState {
 // Base speeds in tiles/s (THR v0 VERIFICAR — espelham SPEC §unidades).
 export const UNIT_SPEED: Record<string, number> = {
   villager: 1.12,
-  scout: 1.62,
+  scout: 1.625, // SPEC
   spearman: 1.25,
   archer: 1.25,
   crossbow: 1.25,
   manatarms: 1.05,
   knight: 1.55,
-  royalknight: 1.62,
+  royalknight: 1.625, // SPEC
   monk: 1.12,
   trader: 1.2
 };
 
-// Base HP per type (THR v0 VERIFICAR).
+// Base HP per type = estágio I do SPEC (escalonado por idade no treino via hpForAge).
 export const UNIT_HP: Record<string, number> = {
   villager: 50,
-  scout: 90,
+  scout: 110, // SPEC (era 90 THR v0)
   spearman: 80,
   archer: 70,
   crossbow: 80,
-  manatarms: 155,
+  manatarms: 100, // SPEC I (era 155 THR v0); 120/155/180 nas eras seguintes
   knight: 230,
-  royalknight: 190, // SPEC estágio I (era 250 THR v0 — corrigido por crítica)
+  royalknight: 190, // SPEC estágio II
   monk: 90,
   trader: 90
 };
