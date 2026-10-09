@@ -196,3 +196,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 40)
 - D1/D2/D4/D13b fechados: painel com HP/stats/retrato/fila com barras (asserts e2e), eras Dark/Feudal, menu com versão dinâmica (screenshot).
 - CI triplo verde 37868668822. Deploy prod.
+
+## Estado 2026-10-09 (Round 41)
+- Tag v9: cura dos monges (1HP/s em 4 tiles) + teste. CI triplo verde 37869016659. Deploy prod.
