@@ -641,8 +641,9 @@ export class Game {
   tick(dt: number): { trained: TrainedEvent[] } {
     this.sim.tickOnce(dt);
 
-    // Nevoeiro: observadores = unidades vivas + prédios prontos (coordenadas em tiles).
-    if (this.fog) {
+    // Nevoeiro a cada 10 ticks (6Hz; determinístico pelo contador do Sim).
+    // Observadores = unidades vivas + prédios prontos (coordenadas em tiles).
+    if (this.fog && this.sim.state.tick % 10 === 0) {
       const size = this.fog.size;
       for (let p = 0; p < this.stocks.length; p++) {
         const obs: { x: number; y: number; sight: number }[] = [];

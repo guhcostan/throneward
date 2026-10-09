@@ -234,3 +234,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 51)
 - Reparo de prédios (ordem + UI botão direito + e2e); cooldown real no cerco (bug 60 golpes/s); varredura final na aniquilação.
 - E2E 33/33, unit 318/318. Deploy prod; CI revalida.
+
+## Estado 2026-10-09 (Round 52)
+- Perf: tick 0.51ms → 0.13ms com 200u em combate (fog a cada 10 ticks, determinístico). 130x de folga no orçamento 16.6ms.
