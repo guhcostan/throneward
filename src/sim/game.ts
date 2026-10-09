@@ -23,7 +23,7 @@ import {
   queueUnit,
   type Building,
 } from './construction';
-import { UNIT_COMBAT, attackTick, dealDamage, hpForAge, type Fighter } from './combat';
+import { UNIT_COMBAT, attackTick, dealDamage, hpForAge, statsForAge, type Fighter } from './combat';
 import {
   TOWER_DEFS,
   WALL_DEFS,
@@ -67,7 +67,7 @@ const TRAIN_COSTS: Record<string, { food?: number; wood?: number; gold?: number;
   scout: { food: 65 }, // SPEC (era 60 THR v0)
   spearman: { food: 60, wood: 20 },
   archer: { food: 30, wood: 50 },
-  longbow: { food: 30, wood: 50 },
+  longbow: { food: 40, wood: 50 }, // SPEC (era 30F)
   crossbow: { food: 80, gold: 40 },
   manatarms: { food: 90, gold: 20 }, // SPEC (era 100 THR v0)
   knight: { food: 140, gold: 100 },
@@ -496,15 +496,21 @@ export class Game {
     const ranged = s.range > 1;
     const atkM = techs ? attackMult(techs, ranged ? 'ranged' : 'melee') : 1;
     const armM = techs ? armorBonus(techs, ranged ? 'ranged' : 'melee') : 1;
-    let damage = s.damage * atkM;
+    // Escala por idade (SPEC); fora da tabela, base.
+    const age = this.ageOf(u.player);
+    const scaled = statsForAge(u.type, age);
+    const baseDmg = scaled?.damage ?? s.damage;
+    const baseMelee = scaled?.melee ?? s.melee;
+    const baseRanged = scaled?.ranged ?? s.ranged;
+    let damage = baseDmg * atkM;
     if (this.civs[u.player] === 'albion') {
       damage *= 1 + castleBonus(u.x, u.y, this.castleStructures());
     }
     return {
       id: u.id, type: u.type, player: u.player, x: u.x, y: u.y,
       hp: u.hp, maxHp: u.maxHp, range: s.range, damage,
-      meleeArmor: Math.round(s.melee * armM), rangedArmor: Math.round(s.ranged * armM),
-      cooldown: s.cooldown, cdLeft: this.cooldowns.get(u.id) ?? 0
+      meleeArmor: Math.round(baseMelee * armM), rangedArmor: Math.round(baseRanged * armM),
+      cooldown: s.cooldown, cdLeft: this.cooldowns.get(u.id) ?? 0, age
     };
   }
 

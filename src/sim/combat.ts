@@ -7,13 +7,69 @@
  * THR v0 VERIFICAR — valores de referência do spec (lanceiro +17 vs cavalaria no estágio I, etc.).
  */
 // THR v0 VERIFICAR
+// Linha de base = estágio I (testes de mecânica travam estes valores).
+// Cavaleiro e homem de armas SEM bônus de classe (SPEC §1.2–1.3).
 export const COUNTER_BONUS: Record<string, Record<string, number>> = {
   spearman: { knight: 17, royalknight: 17, scout: 10, cavalry: 12 },
-  knight: { archer: 6, spearman: 0 },
   archer: { spearman: 4 },
-  crossbow: { manatarms: 9, knight: 6 },
-  manatarms: { spearman: 3, archer: 3 }
+  longbow: { spearman: 6, scout: 6 },
+  crossbow: { manatarms: 10, knight: 10 }
 };
+
+// Bônus por idade [I, II, III, IV] (SPEC §1.2–1.3). attackTick usa a idade do
+// atacante (Fighter.age); sem idade, usa o índice 0 = mesma linha de base acima.
+export const BONUS_BY_AGE: Record<string, Record<string, [number, number, number, number]>> = {
+  spearman: {
+    knight: [17, 20, 23, 28],
+    royalknight: [17, 20, 23, 28],
+    scout: [10, 10, 10, 10],
+    cavalry: [12, 12, 12, 12]
+  },
+  archer: {
+    spearman: [4, 5, 7, 8],
+    scout: [4, 5, 7, 8]
+  },
+  longbow: {
+    spearman: [6, 6, 8, 9],
+    scout: [6, 6, 8, 9]
+  },
+  crossbow: {
+    manatarms: [10, 10, 10, 12],
+    knight: [10, 10, 10, 12]
+  }
+};
+
+/** Bônus de counter do atacante na idade (1-4); 0 sem entrada. */
+export function bonusForAge(atk: string, target: string, age: number): number {
+  const line = BONUS_BY_AGE[atk]?.[target];
+  if (line) return line[Math.max(0, Math.min(3, age - 1))];
+  return COUNTER_BONUS[atk]?.[target] ?? 0;
+}
+
+// Dano e armadura por idade [I, II, III, IV] (SPEC §1.2–1.3).
+export interface AgeStats {
+  damage: [number, number, number, number];
+  melee: [number, number, number, number];
+  ranged: [number, number, number, number];
+}
+
+export const STATS_BY_AGE: Record<string, AgeStats> = {
+  spearman: { damage: [7, 8, 9, 11], melee: [0, 0, 0, 0], ranged: [0, 0, 0, 0] },
+  archer: { damage: [5, 5, 7, 8], melee: [0, 0, 0, 0], ranged: [0, 0, 0, 0] },
+  longbow: { damage: [6, 6, 8, 9], melee: [0, 0, 0, 0], ranged: [0, 0, 0, 0] },
+  crossbow: { damage: [11, 11, 11, 14], melee: [0, 0, 0, 0], ranged: [0, 0, 0, 0] },
+  manatarms: { damage: [8, 10, 12, 14], melee: [2, 3, 4, 5], ranged: [3, 3, 4, 5] },
+  knight: { damage: [24, 24, 24, 29], melee: [4, 4, 4, 5], ranged: [4, 4, 4, 5] },
+  royalknight: { damage: [19, 19, 24, 29], melee: [3, 3, 4, 5], ranged: [3, 3, 4, 5] }
+};
+
+/** Dano/armadura do tipo na idade (1-4); fora da tabela, undefined (usa a base). */
+export function statsForAge(type: string, age: number): { damage: number; melee: number; ranged: number } | undefined {
+  const line = STATS_BY_AGE[type];
+  if (!line) return undefined;
+  const i = Math.max(0, Math.min(3, age - 1));
+  return { damage: line.damage[i], melee: line.melee[i], ranged: line.ranged[i] };
+}
 
 /**
  * Dano final = max(1, atk + bonus − armadura). Mínimo 1.
@@ -38,6 +94,7 @@ export interface Fighter {
   rangedArmor: number;
   cooldown: number; // segundos entre ataques (cadência)
   cdLeft: number; // segundos restantes até o próximo ataque
+  age?: number; // idade do dono (1-4); sem ela, bônus/dano da linha de base
 }
 
 export interface UnitCombatStats {
@@ -87,7 +144,12 @@ export const UNIT_COMBAT: Record<string, UnitCombatStats> = {
 // HP por idade (SPEC: homem de armas 100/120/155/180 I–IV; cavaleiro real 190/230/270 II–IV).
 // Dano/armadura por idade ainda estáticos (VERIFICAR — ver BALANCE.md).
 export const HP_BY_AGE: Record<string, number[]> = {
+  spearman: [80, 90, 110, 140],
+  archer: [70, 70, 80, 95],
+  longbow: [70, 70, 80, 95],
+  crossbow: [80, 80, 80, 95],
   manatarms: [100, 120, 155, 180],
+  knight: [230, 230, 230, 270],
   royalknight: [190, 190, 230, 270]
 };
 
@@ -121,7 +183,7 @@ export function attackTick(a: Fighter, b: Fighter, dt: number): { hits: number[]
 
   const isMelee = a.range <= 1;
   const armor = isMelee ? b.meleeArmor : b.rangedArmor;
-  const bonus = COUNTER_BONUS[a.type]?.[b.type] ?? 0;
+  const bonus = bonusForAge(a.type, b.type, a.age ?? 1);
   b.hp -= dealDamage(a.damage, armor, bonus);
   a.cdLeft = a.cooldown;
   return { hits: [b.id] };

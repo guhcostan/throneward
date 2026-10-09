@@ -26,15 +26,16 @@ export interface GameState {
   resources: Record<Resource, number>[];
 }
 
-// Base speeds in tiles/s (THR v0 VERIFICAR — espelham SPEC §unidades).
+// Base speeds in tiles/s (SPEC §1.2–1.3; lanceiro IV 1.30 não modelado).
 export const UNIT_SPEED: Record<string, number> = {
   villager: 1.12,
   scout: 1.625, // SPEC
   spearman: 1.25,
   archer: 1.25,
-  crossbow: 1.25,
-  manatarms: 1.05,
-  knight: 1.55,
+  longbow: 1.125, // SPEC
+  crossbow: 1.125, // SPEC
+  manatarms: 1.125, // SPEC
+  knight: 1.625, // SPEC
   royalknight: 1.625, // SPEC
   monk: 1.12,
   trader: 1.2
@@ -46,6 +47,7 @@ export const UNIT_HP: Record<string, number> = {
   scout: 110, // SPEC (era 90 THR v0)
   spearman: 80,
   archer: 70,
+  longbow: 70, // SPEC
   crossbow: 80,
   manatarms: 100, // SPEC I (era 155 THR v0); 120/155/180 nas eras seguintes
   knight: 230,

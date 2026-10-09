@@ -148,3 +148,27 @@ describe('combat — determinismo', () => {
     expect(run()).toEqual(run());
   });
 });
+
+describe('combat — escala por idade (SPEC)', () => {
+  it('statsForAge segue a tabela do SPEC', async () => {
+    const { statsForAge, bonusForAge, hpForAge } = await import('../src/sim/combat');
+    expect(statsForAge('spearman', 3)).toEqual({ damage: 9, melee: 0, ranged: 0 });
+    expect(statsForAge('knight', 4)).toEqual({ damage: 29, melee: 5, ranged: 5 });
+    expect(statsForAge('villager', 4)).toBeUndefined();
+    expect(bonusForAge('spearman', 'knight', 3)).toBe(23);
+    expect(bonusForAge('spearman', 'knight', 1)).toBe(17);
+    expect(bonusForAge('longbow', 'spearman', 2)).toBe(6);
+    expect(bonusForAge('knight', 'archer', 3)).toBe(0); // sem bônus de classe (SPEC)
+    expect(hpForAge('archer', 4)).toBe(95);
+  });
+
+  it('Fighter com idade usa bônus da idade; sem idade, linha de base', async () => {
+    const { attackTick } = await import('../src/sim/combat');
+    const sp3 = make({ type: 'spearman', player: 0, x: 0, y: 0, age: 3 });
+    const k3 = make({ type: 'knight', player: 1, x: 0.5, y: 0, id: 2 });
+    sp3.cdLeft = 0;
+    attackTick(sp3, k3, 0);
+    // 7 (base I) + 23 (era III) − 4 = 26.
+    expect(UNIT_COMBAT.knight.hp - k3.hp).toBe(26);
+  });
+});

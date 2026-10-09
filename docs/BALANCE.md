@@ -2,18 +2,20 @@
 
 Legenda: [V] = igual ao SPEC verificado · [V-SPEC] = segue o SPEC (fonte aoe4world/data, patch a confirmar) · `VERIFICAR` = palpite THR v0.
 
+Escala por idade implementada (dano/armadura/HP/bônus via STATS_BY_AGE/BONUS_BY_AGE/HP_BY_AGE; Fighter.age; linha de base I preservada nos testes).
+
 ## Unidades (base = estágio I salvo indicação)
 | Unidade | HP | Dano | Alcance | Armadura M/R | Vel. | Treino | Custo | Status |
 |---|---|---|---|---|---|---|---|---|
 | Aldeão | 50 | 6 | 0 | 0/0 | 1.12 | 20s | 50F | [V] |
 | Batedor | 110 | 1 | 0 | 0/0 | 1.625 | 23s | 65F | [V-SPEC] (era 90/1.62/60) |
-| Lanceiro | 80 | 7 (+17 cav) | 0 | 0/0 | 1.25 | 15s | 60F/20M | [V-SPEC] |
-| Arqueiro | 70 | 5 | 5 | 0/0 | 1.25 | 15s | 30F/50M | [V-SPEC] |
-| Arco longo | 70 | 6 | 7 | 0/0 | 1.25 | 15s | 30F/50M | [V-SPEC] |
-| Besta | 80 | 11 (+9 pes) | 5 | 0/0 | 1.25 | 22s | 80F/40O | [V-SPEC] |
-| Homem de armas | 100/120/155/180 (I–IV) | 8→14 | 0 | 2/3→5/5 | 1.125 | 15–20s | 90F/20O | [V-SPEC] HP/era; dano/armadura por era VERIFICAR |
-| Cavaleiro | 230 | 24 | 0 | 3/3–4/4 | 1.55 | 35s | 140F/100O | [V-SPEC]; escala por era VERIFICAR |
-| Cavaleiro real | 190/230/270 (II–IV) | 19→29 | 0 | 3/3→5/5 | 1.625 | 35s | 140F/100O | [V-SPEC] HP/era; dano/armadura/carga VERIFICAR |
+| Lanceiro | 80/90/110/140 | 7/8/9/11 (+17/20/23/28 cav) | 0 | 0/0 | 1.25 | 15s | 60F/20M | [V-SPEC] |
+| Arqueiro | 70/70/80/95 | 5/5/7/8 (+5/7/8 leve) | 5 | 0/0 | 1.25 | 15s | 30F/50M | [V-SPEC] |
+| Arco longo | 70/70/80/95 | 6/6/8/9 (+6/8/9) | 7 | 0/0 | 1.125 | 15s | 40F/50M | [V-SPEC] |
+| Besta | 80/80/80/95 | 11/11/11/14 (+10/12 pes) | 5 | 0/0 | 1.125 | 22s | 80F/40O | [V-SPEC] |
+| Homem de armas | 100/120/155/180 (I–IV) | 8/10/12/14 | 0 | 2/3→5/5 | 1.125 | 15–20s | 90F/20O | [V-SPEC] |
+| Cavaleiro | 230/230/230/270 | 24/24/24/29 (sem bônus) | 0 | 4/4→5/5 | 1.625 | 35s | 140F/100O | [V-SPEC] |
+| Cavaleiro real | 190/230/270 (II–IV) | 19/19/24/29 | 0 | 3/3→5/5 | 1.625 | 35s | 140F/100O | [V-SPEC]; carga VERIFICAR |
 | Monge | 90 | — (cura ?) | 4 | 0/0 | 1.12 | 30s | 150O | cura VERIFICAR |
 | Mercador | 90 | — | — | 0/0 | 1.2 | 20s | 60M/60O | VERIFICAR |
 | Aríete | 370 | 200 (×5 prédios) | 0 | 0/0 | 0.75 | 35s | 200M | [V-SPEC]; resistência % VERIFICAR |
