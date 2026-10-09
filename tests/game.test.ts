@@ -268,3 +268,21 @@ describe('Game:carga', () => {
     expect(run(0)).toBe(9);
   });
 });
+
+describe('Game:cura', () => {
+  it('monge cura aliado próximo até o máximo', () => {
+    const g = new Game(30, 1);
+    const monk = g.sim.spawnUnit('monk', 0, 0, 0);
+    const hurt = g.sim.spawnUnit('villager', 0, 1, 0);
+    hurt.hp = 20;
+    void monk;
+    for (let i = 0; i < 600; i++) g.tick(DT);
+    expect(hurt.hp).toBeGreaterThan(20);
+    expect(hurt.hp).toBeLessThanOrEqual(hurt.maxHp);
+    // Longe não cura.
+    const far = g.sim.spawnUnit('villager', 0, 50, 50);
+    far.hp = 10;
+    for (let i = 0; i < 600; i++) g.tick(DT);
+    expect(far.hp).toBe(10);
+  });
+});

@@ -628,9 +628,19 @@ export class Game {
       }
     }
 
+    // Monges curam aliados em 4 tiles a 1 HP/s (taxa VERIFICAR, SPEC §1.5).
+    for (const m of this.sim.state.units) {
+      if (m.type !== 'monk' || m.hp <= 0) continue;
+      for (const a of this.sim.state.units) {
+        if (a.player !== m.player || a.hp <= 0 || a.hp >= a.maxHp) continue;
+        if (Math.hypot(a.x - m.x, a.y - m.y) <= 4) {
+          a.hp = Math.min(a.maxHp, a.hp + 1 * dt);
+        }
+      }
+    }
+
     // Torres disparam contra inimigos em alcance.
-    for (const towerId of sortedKeys(this.towers)) {
-      const tw = this.towers.get(towerId);
+    for (const towerId of sortedKeys(this.towers)) {      const tw = this.towers.get(towerId);
       if (!tw) continue;
       const def = TOWER_DEFS[tw.kind as keyof typeof TOWER_DEFS];
       if (!def) continue;
