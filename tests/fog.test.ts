@@ -32,4 +32,16 @@ describe('fog', () => {
     };
     expect(run()).toBe(run());
   });
+
+  it('furtividade esconde além de 2 tiles', () => {
+    const f = new Fog(16, 1);
+    const blocked = new Uint8Array(16 * 16);
+    blocked[8 * 16 + 8] = 2; // tile furtivo
+    // Observador a 5 tiles do alvo, com o tile furtivo no meio: além de 2 não vê.
+    f.update(0, [{ x: 3, y: 8, sight: 10 }], blocked);
+    expect(f.isSeen(0, 8, 8)).toBe(false);
+    // Colado (≤2 tiles) vê normalmente.
+    f.update(0, [{ x: 7, y: 8, sight: 10 }], blocked);
+    expect(f.isSeen(0, 8, 8)).toBe(true);
+  });
 });

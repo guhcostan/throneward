@@ -174,6 +174,14 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   const game = new Game(SEED, nPlayers, [cfg.civ, ...cfg.bots.map(() => 'generic')]);
   game.victories = new Set(cfg.victories);
   game.initFog(MAP_SIZE);
+  // Visão: tiles furtivos = 2 (escondem além de 2 tiles). Estático por partida.
+  {
+    const vg = new Uint8Array(MAP_SIZE * MAP_SIZE);
+    for (let i = 0; i < vg.length; i++) {
+      if (terrain.stealth[i] === 1) vg[i] = 2;
+    }
+    game.setVisionBlocked(vg);
+  }
   const sim = game.sim;
   const home = terrain.spawns[0];
   const W = (tx: number, ty: number): { x: number; y: number } => ({ x: tx - terrain.size / 2, y: ty - terrain.size / 2 });
@@ -385,6 +393,18 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     game,
     debug: {
       project: (x: number, z: number) => project(x, z),
+      // Tiles furtivos em coords de mundo (e2e; máx 50).
+      stealthTiles: () => {
+        const out: { x: number; y: number }[] = [];
+        for (let ty = 0; ty < terrain.size && out.length < 50; ty++) {
+          for (let tx = 0; tx < terrain.size && out.length < 50; tx++) {
+            if (terrain.stealth[ty * terrain.size + tx] === 1) {
+              out.push({ x: tx - terrain.size / 2, y: ty - terrain.size / 2 });
+            }
+          }
+        }
+        return out;
+      },
       ui: () => ({
         placeMode: placeMode?.building ?? null,
         choosingAge,

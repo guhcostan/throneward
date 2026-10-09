@@ -168,6 +168,12 @@ export class Game {
   sacred = new SacredState();
   // Nevoeiro de guerra (inicializado via initFog com o tamanho do mapa).
   fog: Fog | null = null;
+  // Grade de visão: tiles de furtividade = 2 (bloqueiam visão além de 2 tiles).
+  private visionBlocked: Uint8Array | null = null;
+
+  setVisionBlocked(grid: Uint8Array): void {
+    this.visionBlocked = grid;
+  }
   traders = new Map<number, Trader>();
   private traderDistance = new Map<number, number>();
   private nextTraderSeq = 0;
@@ -599,7 +605,7 @@ export class Game {
           if (b.player !== p || !b.built) continue;
           obs.push({ x: b.x + size / 2, y: b.y + size / 2, sight: sightOf(b.type) });
         }
-        this.fog.update(p, obs);
+        this.fog.update(p, obs, this.visionBlocked ?? undefined);
       }
     }
 
