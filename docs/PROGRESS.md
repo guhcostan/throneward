@@ -192,3 +192,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 38+)
 - Fix grave: throttle frameN%60 após frameN++%15 NUNCA casava → minimapa dots e véu congelados desde r32. Reestruturado (60/15 separados, incremento no fim). Screenshot fog refeito com véu.
 - CI triplo verde. Deploy prod.
+
+## Estado 2026-10-09 (Round 40)
+- D1/D2/D4/D13b fechados: painel com HP/stats/retrato/fila com barras (asserts e2e), eras Dark/Feudal, menu com versão dinâmica (screenshot).
+- CI triplo verde 37868668822. Deploy prod.
