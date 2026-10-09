@@ -171,3 +171,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 31)
 - Fog of war completo: src/sim/fog.ts + Game (initFog/update/isSeenBy) + véu 3D + unidades ocultas + minimapa filtrado + ordens respeitam visão + e2e.
 - E2E 23/23, unit 303/303. CI: build+e2e verdes; e2e-prod falhou contra produção DESATUALIZADA (faltava deploy) — deploy feito, revalidando.
+
+## Estado 2026-10-09 (Round 32)
+- Auditoria SPEC: scout 110HP/1.625/65F, MAA HP por idade, royal HP por idade no treino, MAA 90F, BALANCE.md criado. CI triplo verde 37864271650. Deploy prod.
