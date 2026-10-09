@@ -215,3 +215,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 45)
 - Unidades sobre muros de pedra: elev, imunidade a melee do chão, +1 alcance, render elevado, montar por botão direito, desmonta ao mover.
 - E2E 30/30, unit 312/312. Deploy prod; CI revalida.
+
+## Estado 2026-10-09 (Round 46)
+- Furtividade com efeito: grade de visão + e2e stealth + tag v10 (defesas completas).
+- E2E 31/31, unit 313/313. Deploy prod; CI revalida.
