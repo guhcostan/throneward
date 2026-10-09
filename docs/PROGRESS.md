@@ -174,3 +174,8 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 
 ## Estado 2026-10-09 (Round 32)
 - Auditoria SPEC: scout 110HP/1.625/65F, MAA HP por idade, royal HP por idade no treino, MAA 90F, BALANCE.md criado. CI triplo verde 37864271650. Deploy prod.
+
+## Estado 2026-10-09 (Round 33)
+- Escala por idade completa: dano/armadura/HP/bônus (STATS/BONUS/HP_BY_AGE, Fighter.age, baseline I intacta nos testes velhos + 2 testes novos).
+- Removidos bônus sem base no SPEC (cavaleiro, homem de armas). Vel. cavaleiro 1.625, arco/besta/MAA 1.125, longbow 40W.
+- 305 unit, CI triplo verde 37864836050. Deploy prod.
