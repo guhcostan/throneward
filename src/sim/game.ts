@@ -58,7 +58,7 @@ import {
   type GalLandmark,
 } from './civs/gallia';
 import { RELIC_RATE, RelicState, drop as relicDrop, garrison as relicGarrison, pickup as relicPickup } from './relics';
-import { SacredState, sacredTick } from './sacred';
+import { Fog, sightOf } from './fog';import { SacredState, sacredTick } from './sacred';
 import { checkVictory, goldFor, traderTick, tripTime, type Trader } from './trade';
 
 // Custos de treino por unidade (THR v0 VERIFICAR — docs/spec-units.md).
@@ -158,6 +158,8 @@ export class Game {
   // Fase 6: relíquias, sagrados, comércio, maravilha e vencedor.
   relics = new RelicState();
   sacred = new SacredState();
+  // Nevoeiro de guerra (inicializado via initFog com o tamanho do mapa).
+  fog: Fog | null = null;
   traders = new Map<number, Trader>();
   private traderDistance = new Map<number, number>();
   private nextTraderSeq = 0;
@@ -186,6 +188,27 @@ export class Game {
 
   ageOf(player: number): Age {
     return this.ages[player]?.age ?? 1;
+  }
+
+  // Inicializa o nevoeiro para um mapa size×size (tiles). Sem isso, tudo é visível.
+  initFog(size: number): void {
+    this.fog = new Fog(size, this.stocks.length);
+  }
+
+  // Unidade visível para `viewer`? (próprias sempre; inimigas só se vistas).
+  isSeenBy(unitId: number, viewer: number): boolean {
+    if (!this.fog) return true;
+    const u = this.sim.state.units.find((v) => v.id === unitId);
+    if (!u) return false;
+    if (u.player === viewer) return true;
+    return this.fog.isSeen(viewer, u.x + this.fog.size / 2, u.y + this.fog.size / 2);
+  }
+
+  // Variante por objeto (minimapa/render) — evita nova busca por id.
+  isSeenByUnit(u: { id: number; player: number; x: number; y: number }, viewer: number): boolean {
+    if (!this.fog) return true;
+    if (u.player === viewer) return true;
+    return this.fog.isSeen(viewer, u.x + this.fog.size / 2, u.y + this.fog.size / 2);
   }
 
   // Pontuação THR v0 (fórmula do original VERIFICAR): unidades e prédios contam.
@@ -488,6 +511,23 @@ export class Game {
   // Avança o mundo em dt segundos. Ordem: idades, tecnologias, movimento, coleta, construção/produção, combate.
   tick(dt: number): { trained: TrainedEvent[] } {
     this.sim.tickOnce(dt);
+
+    // Nevoeiro: observadores = unidades vivas + prédios prontos (coordenadas em tiles).
+    if (this.fog) {
+      const size = this.fog.size;
+      for (let p = 0; p < this.stocks.length; p++) {
+        const obs: { x: number; y: number; sight: number }[] = [];
+        for (const u of this.sim.state.units) {
+          if (u.player !== p || u.hp <= 0) continue;
+          obs.push({ x: u.x + size / 2, y: u.y + size / 2, sight: sightOf(u.type) });
+        }
+        for (const b of this.buildings.values()) {
+          if (b.player !== p || !b.built) continue;
+          obs.push({ x: b.x + size / 2, y: b.y + size / 2, sight: sightOf(b.type) });
+        }
+        this.fog.update(p, obs);
+      }
+    }
 
     for (let p = 0; p < this.ages.length; p++) {
       const st = this.ages[p];

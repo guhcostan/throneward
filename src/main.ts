@@ -77,7 +77,12 @@ const PLAYER_COLORS = [0x2f6df6, 0xd83a2a, 0x2fae5f, 0xe0a020];
 // Minimapa 2D redesenhado no canvas (B-001: camada fixa com eco fantasma de
 // 222x222 em (12,12) APENAS em screenshots do Chromium headless + SwiftShader;
 // DOM e conteúdo verificados corretos — sem mudança de produto justificada).
-function updateMinimap(t: TerrainData, sim: Sim, cam: CameraState): void {
+function updateMinimap(
+  t: TerrainData,
+  sim: Sim,
+  cam: CameraState,
+  seen?: (u: { id: number; player: number; x: number; y: number }) => boolean
+): void {
   const canvas = document.getElementById('minimap') as HTMLCanvasElement | null;
   if (!canvas) return;
   const mctx = canvas.getContext('2d');
@@ -87,8 +92,9 @@ function updateMinimap(t: TerrainData, sim: Sim, cam: CameraState): void {
   mctx.clearRect(0, 0, canvas.width, canvas.height);
   mctx.drawImage(baseMap, 0, 0, canvas.width, canvas.height);
   const sx = canvas.width / t.size;
-  // Units.
+  // Units (inimigos fora do nevoeiro não aparecem).
   for (const u of sim.state.units) {
+    if (u.player !== 0 && seen && !seen(u)) continue;
     mctx.fillStyle = '#' + PLAYER_COLORS[u.player % PLAYER_COLORS.length].toString(16).padStart(6, '0');
     mctx.fillRect((u.x + t.size / 2) * sx - 1, (u.y + t.size / 2) * sx - 1, 3, 3);
   }
@@ -163,6 +169,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
 
   const game = new Game(SEED, nPlayers, [cfg.civ, ...cfg.bots.map(() => 'generic')]);
   game.victories = new Set(cfg.victories);
+  game.initFog(MAP_SIZE);
   const sim = game.sim;
   const home = terrain.spawns[0];
   const W = (tx: number, ty: number): { x: number; y: number } => ({ x: tx - terrain.size / 2, y: ty - terrain.size / 2 });
@@ -252,6 +259,44 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   drawMinimapBase(terrain);
   updateMinimap(terrain, sim, cam);
 
+  // Véu do nevoeiro: plano com textura de canvas (preto onde inexplorado,
+  // translúcido onde explorado sem visão). Atualizado no sync.
+  const shroudCanvas = document.createElement('canvas');
+  shroudCanvas.width = 64;
+  shroudCanvas.height = 64;
+  const shroudTex = new THREE.CanvasTexture(shroudCanvas);
+  const shroud = new THREE.Mesh(
+    new THREE.PlaneGeometry(terrain.size, terrain.size),
+    new THREE.MeshBasicMaterial({ map: shroudTex, transparent: true, depthWrite: false })
+  );
+  shroud.rotation.x = -Math.PI / 2;
+  shroud.position.y = 2.3;
+  shroud.renderOrder = 5;
+  scene.add(shroud);
+
+  const updateShroud = (): void => {
+    if (!game.fog) return;
+    const ctx = shroudCanvas.getContext('2d');
+    if (!ctx) return;
+    const S = 64;
+    const img = ctx.createImageData(S, S);
+    for (let py = 0; py < S; py++) {
+      for (let px = 0; px < S; px++) {
+        const tx = Math.floor((px / S) * terrain.size);
+        const ty = Math.floor((py / S) * terrain.size);
+        const seen = game.fog.seen[0][ty * terrain.size + tx] === 1;
+        const exp = game.fog.explored[0][ty * terrain.size + tx] === 1;
+        const i = (py * S + px) * 4;
+        img.data[i] = 0;
+        img.data[i + 1] = 0;
+        img.data[i + 2] = 0;
+        img.data[i + 3] = seen ? 0 : exp ? 110 : 215;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    shroudTex.needsUpdate = true;
+  };
+
   // window.__game — reading state + sending commands (used by tests).
   type Cmd =
     | { type: 'move'; unitIds: number[]; x: number; y: number; queue?: boolean }
@@ -294,6 +339,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       scores: game.stocks.map((_, p) => game.score(p)),
       idleVil: game.idleVillagers(0),
       idleMil: game.idleMilitary(0),
+      visible: sim.state.units.filter((u) => u.player !== 0 && game.isSeenByUnit(u, 0)).map((u) => u.id),
       relics: [...game.relics.relics.values()],
       sacred: {
         sites: [...game.sacred.sites.values()],
@@ -417,6 +463,8 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   const syncUnits = (): void => {
     const live = new Set<number>();
     for (const u of sim.state.units) {
+      // Nevoeiro: inimigos fora de visão não renderizam (nem são clicáveis).
+      if (u.player !== 0 && !game.isSeenBy(u.id, 0)) continue;
       live.add(u.id);
       let node = unitNodes.get(u.id);
       if (!node) {
@@ -658,7 +706,9 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
   const orderAt = (wx: number, wz: number, additive: boolean): void => {
     const mine = sim.state.units.filter((u) => selected.includes(u.id) && u.hp > 0);
     if (mine.length === 0) return;
-    const foe = sim.state.units.find((u) => u.player !== 0 && u.hp > 0 && Math.hypot(u.x - wx, u.y - wz) <= 1.5);
+    const foe = sim.state.units.find(
+      (u) => u.player !== 0 && u.hp > 0 && Math.hypot(u.x - wx, u.y - wz) <= 1.5 && game.isSeenBy(u.id, 0)
+    );
     const military = mine.filter((u) => u.type !== 'villager' && u.type !== 'monk' && u.type !== 'trader' && u.type !== 'scout');
     if (foe && military.length > 0) {
       for (const m of military) game.orderAttack(m.id, foe.id);
@@ -882,8 +932,9 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     // Vitória (aniquilação/sagrados/maravilha/landmarks) calculada no Game.tick.
     syncUnits();
     if (frameN++ % 15 === 0) {
-      updateMinimap(terrain, sim, cam);
+      updateMinimap(terrain, sim, cam, (u) => u.player === 0 || game.isSeenByUnit(u, 0));
       syncSettlement();
+      updateShroud();
       refreshGrid();
       if (game.winner && !bannerShown.v) {
         bannerShown.v = true;
