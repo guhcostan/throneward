@@ -126,7 +126,8 @@ export const DEFAULT_SKIRMISH: SkirmishConfig = {
 
 export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; renderer: THREE.WebGLRenderer; cam: CameraState } {
   const container = document.getElementById('app')!;
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  // Sem MSAA (caro no rasterizador por software; GPUs reais aplicam AA barato no compositor).
+  const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
   container.appendChild(renderer.domElement);
 

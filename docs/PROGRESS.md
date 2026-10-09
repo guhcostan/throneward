@@ -263,3 +263,6 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 64)
 - Menores v11: alcance mínimo do mangonel, aríete 35s, besta na UI (22.5s).
 - CI triplo verde 37888207756. Deploy prod.
+
+## Estado 2026-10-09 (Round 66)
+- Render sem MSAA: 35.5 → 55.6fps no SwiftShader 1280x800 (210u). Visual low-poly intacto. Gargalo restante: fill-rate por software.
