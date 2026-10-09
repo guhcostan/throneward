@@ -70,6 +70,9 @@ test('full loop by mouse: select, build, train, advance', async ({ page }) => {
   expect(tcSelected).toBe(true);
   const nBefore = st.units.length;
   await page.click('[data-act="train-villager"]');
+  // Painel mostra HP e fila com progresso (D1/D2).
+  await expect(page.locator('#selection')).toContainText('HP', { timeout: 5000 });
+  await expect(page.locator('#selection')).toContainText('fila', { timeout: 5000 });
   await cmd(page, { type: 'tick', seconds: 25 });
   await expect
     .poll(async () => (await snap(page)).units.length, { timeout: 10000 })

@@ -19,6 +19,9 @@ const WARRIOR_KINDS = new Set<string>([
 ]);
 import { clickSelect, boxSelect, doubleClickSelect, ControlGroups } from './sim/selection';
 
+// Versão exibida no menu e exposta no __game (fonte única).
+export const GAME_VERSION = '0.4-jogavel';
+
 // Fase 1 integration: seeded terrain mesh + forest instancing + RTS camera + minimap + units.
 
 const SEED = 1234;
@@ -429,7 +432,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
       }
       return { ok: false, error: 'unknown command' };
     },
-    version: '0.3-hud-vivo'
+    version: GAME_VERSION
   };
 
   // Camada de unidades: um Group por unidade (templates por tipo+jogador).
@@ -1033,6 +1036,10 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
 
 // Menu: ?test=1 inicia direto (e2e); senão o jogador configura o skirmish e clica em Iniciar.
 const TEST_MODE = typeof location !== 'undefined' && location.search.includes('test=1');
+{
+  const mv = document.getElementById('menu-version');
+  if (mv) mv.textContent = GAME_VERSION;
+}
 
 function readSkirmish(): SkirmishConfig {
   const civ = (document.getElementById('sel-civ') as HTMLSelectElement | null)?.value ?? 'albion';
