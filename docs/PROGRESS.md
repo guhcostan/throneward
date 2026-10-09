@@ -203,3 +203,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 42)
 - A* ligado no movimento (setBlockedGrid terreno+muros+prédios); muros com render; paliçada com dois cliques; comando wall; e2e de contorno.
 - E2E 26/26, unit 309/309, CI build+e2e verdes; e2e-prod exige deploy (canário) — deploy feito.
+
+## Estado 2026-10-09 (Round 43)
+- Comércio e monge pela UI (mercado treina mercador, mosteiro treina monge, rota em dois cliques) + e2e trade 27/27.
+- Deploy prod; CI revalida.
