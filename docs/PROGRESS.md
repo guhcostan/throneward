@@ -241,3 +241,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 54)
 - Auto-defesa: tropa ociosa revida num raio de alcance+3 (aldeões/monges fora). Teste de combate corrigido p/ cenário justo (melee colado).
 - 319 unit, CI triplo verde 37882162430. Deploy prod.
+
+## Estado 2026-10-09 (Round 56)
+- Ciclo real de coleta (nó → entrega a pé). Economia e2e adaptados; varredura convergente na aniquilação.
+- E2E 33/33, unit 319/319, CI triplo verde. Deploy prod 96551c94.
