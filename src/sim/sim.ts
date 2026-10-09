@@ -42,7 +42,11 @@ export const UNIT_SPEED: Record<string, number> = {
   knight: 1.625, // SPEC
   royalknight: 1.625, // SPEC
   monk: 1.125, // SPEC
-  trader: 1.0 // SPEC
+  trader: 1.0, // SPEC
+  ram: 0.75, // SPEC §1.4
+  mangonel: 0.75, // SPEC §1.4
+  trebuchet: 0.625, // SPEC §1.4
+  bombard: 0.75 // SPEC §1.4
 };
 
 // Base HP per type = estágio I do SPEC (escalonado por idade no treino via hpForAge).

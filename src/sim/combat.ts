@@ -18,6 +18,14 @@ export const COUNTER_BONUS: Record<string, Record<string, number>> = {
 
 // Bônus por idade [I, II, III, IV] (SPEC §1.2–1.3). attackTick usa a idade do
 // atacante (Fighter.age); sem idade, usa o índice 0 = mesma linha de base acima.
+
+// Resistência de cerco: fração do dano ignorada (SPEC §1.4).
+export const SIEGE_RESIST: Record<string, number> = {
+  ram: 0.95,
+  mangonel: 0.85,
+  trebuchet: 0.8,
+  bombard: 0.85
+};
 export const BONUS_BY_AGE: Record<string, Record<string, [number, number, number, number]>> = {
   spearman: {
     knight: [17, 20, 23, 28],
@@ -190,7 +198,9 @@ export function attackTick(a: Fighter, b: Fighter, dt: number): { hits: number[]
   const isMelee = a.range <= 1;
   const armor = isMelee ? b.meleeArmor : b.rangedArmor;
   const bonus = bonusForAge(a.type, b.type, a.age ?? 1);
-  b.hp -= dealDamage(a.damage, armor, bonus);
+  // Resistência de cerco: fração do dano ignorada (SPEC §1.4).
+  const resist = SIEGE_RESIST[b.type] ?? 0;
+  b.hp -= dealDamage(a.damage, armor, bonus) * (1 - resist);
   a.cdLeft = a.cooldown;
   return { hits: [b.id] };
 }

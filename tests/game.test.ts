@@ -361,3 +361,18 @@ describe('Game:auto-defesa', () => {
     expect(vil.hp).toBeLessThan(50); // ...e apanhou
   });
 });
+
+describe('Game:cerco a muralha', () => {
+  it('aríete derruba muralha inimiga (dano SPEC, sem ×5)', () => {
+    const g = new Game(61, 2);
+    g.mapSize = 64;
+    g.stocks[1].stock.wood = 1000;
+    const id = g.placeWall(1, 'palisade', 0, 0, 0, 0);
+    expect(id).toBeGreaterThan(0);
+    const ram = g.sim.spawnUnit('ram', 0, 0, 1);
+    expect(g.orderSiege(ram.id, id)).toBe(true);
+    for (let i = 0; i < 1200; i++) g.tick(DT);
+    // Paliçada 600HP / 200 por golpe (5.12s) ≈ 16s; em 20s caiu.
+    expect(g.walls.has(id)).toBe(false);
+  });
+});

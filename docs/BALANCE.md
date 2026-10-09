@@ -19,10 +19,10 @@ Escala por idade implementada (dano/armadura/HP/bônus via STATS_BY_AGE/BONUS_BY
 | Monge | 90 | — (cura ?) | 4 | 0/0 | 1.125 | 30s | 150O | cura VERIFICAR |
 | Mercador | 90 | — | — | 0/0 | 1.0 | 30s | 60M/60O | [V-SPEC] |
 | Bombardeiro | 130 | 38 | 4 | 0/0 | 1.125 | 35s | 120F/120O | [V-SPEC] |
-| Aríete | 370 | 200 (×5 prédios) | 0 | 0/0 | 0.75 | 35s | 200M | [V-SPEC]; resistência % VERIFICAR |
-| Mangonel | 240 | 12×3 área | 9 (mín 3) | 0/0 | 0.75 | 45s | 400M/200O | [V-SPEC]; resto VERIFICAR |
-| Trabuco | 250 | 200 prédios | 12 | — | 0.7 | 60s | 400M/150O | [V-SPEC]; resto VERIFICAR |
-| Bombarda | 260 | 160 | 10 | — | 0.75 | 60s | 350M/500O | [V-SPEC]; resto VERIFICAR |
+| Aríete | 370 | 200 prédios | 0 | 0/0 (resiste 95%) | 0.75 | 35s | 200M | [V-SPEC] |
+| Mangonel | 240 | 12+30 prédios | 9 (mín 3) | 0/0 (resiste 85%) | 0.75 | 45s | 400M/200O | [V-SPEC]; área VERIFICAR |
+| Trabuco | 250 | 40+350 prédios | 12 | — (resiste 80%) | 0.625 | 60s | 400M/150O | [V-SPEC] |
+| Bombarda | 260 | 55+375 | 10 | — (resiste 85%) | 0.75 | 60s | 350M/500O | [V-SPEC] |
 
 Fórmula de dano: `max(1, atk + bônus − armadura)` — percentual do original em aberto.
 Techs militares: +1 fixo por nível (SPEC §3.1); coleta e cerco em %; carga +3, ×(10/3) com Cantled Saddles.

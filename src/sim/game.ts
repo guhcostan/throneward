@@ -109,7 +109,15 @@ const MILITARY_TYPES = new Set([
   'knight', 'royalknight', 'arbaletrier', 'mangonel', 'trebuchet', 'bombard', 'ram'
 ]);
 const SIEGE_UNITS = new Set(['ram', 'mangonel', 'trebuchet', 'bombard', 'springald']);
-const SIEGE_VS_BUILDING = 5;
+// Bônus somado ao dano base contra prédios/muralhas (SPEC §1.4).
+// Aríete: 200 já é o dano de cerco (sem bônus extra).
+const SIEGE_BONUS: Record<string, number> = {
+  mangonel: 30,
+  trebuchet: 350,
+  bombard: 375,
+  springald: 0,
+  ram: 0
+};
 
 function gatherGroup(kind: string): GatherGroup {
   if (HUNT_SOURCES.has(kind)) return 'hunt';
@@ -443,13 +451,23 @@ export class Game {
     return true;
   }
 
-  // Ordem de cerco a prédio inimigo (qualquer unidade; cerco tem bônus).
+  // Ordem de cerco a prédio OU muralha inimiga (qualquer unidade; cerco tem bônus).
   orderSiege(unitId: number, buildingId: number): boolean {
     const a = this.sim.state.units.find((u) => u.id === unitId);
+    if (!a) return false;
     const b = this.buildings.get(buildingId);
-    if (!a || !b || a.player === b.player) return false;
-    this.siegeTargets.set(unitId, buildingId);
-    return true;
+    if (b) {
+      if (a.player === b.player) return false;
+      this.siegeTargets.set(unitId, buildingId);
+      return true;
+    }
+    const w = this.walls.get(buildingId);
+    if (w) {
+      if (a.player === w.player) return false;
+      this.siegeTargets.set(unitId, buildingId);
+      return true;
+    }
+    return false;
   }
 
   // Ordem de reparo: aldeão conserta prédio próprio danificado.
@@ -462,6 +480,19 @@ export class Game {
     this.targets.delete(unitId);
     this.repairTargets.set(unitId, buildingId);
     return true;
+  }
+
+  // Parar: limpa fila de movimento e todas as ordens das unidades.
+  clearOrders(unitIds: number[]): void {
+    for (const id of unitIds) {
+      const u = this.sim.state.units.find((v) => v.id === id);
+      if (u) u.queue = [];
+      this.gatherers.delete(id);
+      this.gatherOwner.delete(id);
+      this.targets.delete(id);
+      this.siegeTargets.delete(id);
+      this.repairTargets.delete(id);
+    }
   }
   // Torre defensiva (custo THR v0 VERIFICAR em TOWER_DEFS). Retorna id ou -1.
   placeTower(player: number, kind: 'outpost' | 'tower' | 'keep', x: number, y: number): number {
@@ -836,28 +867,54 @@ export class Game {
       }
     }
 
-    // Cerco: unidades atacam prédios inimigos (dano com bônus de cerco, sem armadura).
+    // Cerco: unidades atacam prédios E muralhas (dano base + bônus SPEC §1.4).
     // Respeita a cadência da unidade (mesmo mapa de cooldown do melee).
     for (const attackerId of sortedKeys(this.siegeTargets)) {
-      const buildingId = this.siegeTargets.get(attackerId);
-      if (buildingId === undefined) continue;
+      const targetId = this.siegeTargets.get(attackerId);
+      if (targetId === undefined) continue;
       const a = this.sim.state.units.find((u) => u.id === attackerId);
-      const b = this.buildings.get(buildingId);
-      if (!a || a.hp <= 0 || !b) {
+      if (!a || a.hp <= 0) {
+        this.siegeTargets.delete(attackerId);
+        continue;
+      }
+      const b = this.buildings.get(targetId);
+      const w = b ? null : this.walls.get(targetId);
+      if (!b && !w) {
         this.siegeTargets.delete(attackerId);
         continue;
       }
       const stats = UNIT_COMBAT[a.type];
       const reach = stats && stats.range > 1 ? stats.range : 1.5;
-      if (Math.hypot(b.x - a.x, b.y - a.y) > reach) continue;
+      let dist: number;
+      if (b) {
+        dist = Math.hypot(b.x - a.x, b.y - a.y);
+      } else {
+        // Muralha: distância ao tile mais próximo.
+        dist = Infinity;
+        const off = this.mapSize / 2;
+        for (const t of this.wallTilesOf(targetId)) {
+          const d = Math.hypot(t.x - off - a.x, t.y - off - a.y);
+          if (d < dist) dist = d;
+        }
+      }
+      if (dist > reach) continue;
       const cdLeft = (this.cooldowns.get(attackerId) ?? 0) - dt;
       if (cdLeft > 0) {
         this.cooldowns.set(attackerId, cdLeft);
         continue;
       }
       this.cooldowns.set(attackerId, stats?.cooldown ?? 2);
-      const dmg = dealDamage((stats?.damage ?? 5) * (SIEGE_UNITS.has(a.type) ? SIEGE_VS_BUILDING : 1), 0);
-      b.hp -= dmg;
+      const base = stats?.damage ?? 5;
+      const dmg = dealDamage(SIEGE_UNITS.has(a.type) ? base + (SIEGE_BONUS[a.type] ?? 0) : base, 0);
+      if (b) {
+        b.hp -= dmg;
+      } else if (w) {
+        w.hp -= dmg;
+        if (w.hp <= 0) {
+          this.walls.delete(w.id);
+          this.siegeTargets.delete(attackerId);
+        }
+      }
     }
 
     // Reparo: aldeão perto do prédio restaura 25 HP/s (anda até lá se longe).

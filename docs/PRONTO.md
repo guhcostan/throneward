@@ -16,7 +16,7 @@ CI: build + e2e + e2e-prod (https://throneward.pages.dev). Tags: v1–v10.
 9. **Defesas** (paliçada/pedra com render, portões, unidades no alto, torres, keep): `tests/defenses.test.ts` (13) + `e2e/walls.spec.ts` + `e2e/gates.spec.ts` + `e2e/walltop.spec.ts`.
 10. **Furtivas/relíquias/monges/sagrados/comércio**: `tests/relics.test.ts`, `tests/sacred.test.ts`, `tests/trade.test.ts`, `e2e/relics.spec.ts`.
 11. **Vitória** (landmarks/sagrados/maravilha/aniquilação): `e2e/victory.spec.ts` (3) + `e2e/siege.spec.ts` (landmark) + bot-vs-bot com vencedor (`tests/bot.test.ts`).
-12. **HUD layout**: `e2e/boot.spec.ts` (identidade), `hud-live.png`, painel lateral (ociosos/placar/objetivos/produção).
+12. **HUD layout**: `e2e/boot.spec.ts` (identidade), `docs/screenshots/hud-prod-ci.png` (captura genuína de produção via job e2e-prod, CI 2026-10-09, sha256 f5754e66…), painel lateral (ociosos/placar/objetivos/produção).
 13. **Bots** (build order, counters, 3 dificuldades, bot vs bot): `tests/bot.test.ts` (6) + `e2e/bot.spec.ts`.
 14. **Determinismo**: `tests/sim.test.ts`, headless-sim, hashes iguais em bot.test.
 15. **Áudio procedural + mute**: `tests/audio.test.ts`.

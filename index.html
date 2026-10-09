@@ -32,7 +32,7 @@
     <span id="res-pop">Pop 0/0</span><span id="age">Age I</span>
     <button id="btn-mute" title="Som on/off" style="margin-left:auto">🔊</button>
   </div>
-  <canvas id="minimap" width="220" height="220"></canvas>
+  <canvas id="minimap" width="220" height="220" title="Minimapa (roxo = furtivo; pontos = unidades)"></canvas>
   <div id="selection">No selection</div>
   <div id="side-panel" style="position:fixed;right:12px;top:48px;width:230px;background:rgba(10,10,12,.72);padding:8px;font-size:13px;z-index:5">
     <div><button id="btn-idle-vil">Aldeão ocioso (<span id="idle-vil-n">0</span>)</button>
@@ -42,8 +42,8 @@
     <div id="global-queue" style="margin-top:6px">Produção: —</div>
   </div>
   <div id="cmd-grid">
-    <button disabled title="Move (M)">Move</button><button disabled title="Attack (A)">Atk</button><button disabled title="Build (B)">Build</button><button disabled title="Gather (G)">Gather</button>
-    <button disabled title="Patrol (P)">Patrol</button><button disabled title="Stop (S)">Stop</button><button disabled title="Repair (R)">Repair</button><button disabled title="Cancel (Esc)">Cancel</button>
+    <button disabled title="Selecione aldeões, tropas ou prédios">—</button><button disabled title="Selecione aldeões, tropas ou prédios">—</button><button disabled title="Selecione aldeões, tropas ou prédios">—</button><button disabled title="Ordens de ataque e movimento pelo botão direito">—</button>
+    <button disabled title="Selecione aldeões, tropas ou prédios">—</button><button disabled title="Selecione aldeões, tropas ou prédios">—</button><button disabled title="Selecione aldeões, tropas ou prédios">—</button><button disabled title="Esc cancela o modo atual">—</button>
   </div>
   <div id="hint"></div>
   <div id="banner"><div id="banner-card"></div></div>
@@ -64,9 +64,10 @@
     <button id="btn-start">Iniciar partida</button>
     <button id="btn-help">Como jogar</button>
     <div id="help">
-      <p><b>Esquerdo:</b> selecionar (arrastar = caixa, duplo clique = mesmo tipo, Ctrl+1–9 = grupos, Shift = fila). <b>Direito:</b> mover / atacar / coletar / reparar / montar muro. <b>Meio/arrastar ou WASD:</b> câmera. <b>Roda:</b> zoom. <b>Botão direito arrastar:</b> girar.</p>
-      <p><b>Construir:</b> selecione aldeões → grade → clique no terreno (paliçada: dois cliques; Portão alterna o trecho). <b>Treinar:</b> selecione o prédio → clique na unidade. <b>Era:</b> botão Era ↑ + escolha 1 landmark.</p>
-      <p><b>Economia:</b> 4 recursos esgotam (fazenda infinita); mercado + Rota rende ouro; monge cura e captura relíquias/sagrados.</p>
+      <p><b>Esquerdo:</b> selecionar (arrastar = caixa, duplo clique = mesmo tipo, Ctrl+1–9 = grupos). <b>Direito:</b> mover / atacar / coletar / reparar / montar muro. <b>WASD/setas:</b> câmera. <b>Roda:</b> zoom. <b>Q/E:</b> girar 90°. <b>Espaço:</b> voltar ao TC. <b>Shift:</b> enfileirar ordens de movimento.</p>
+      <p><b>Construir:</b> selecione aldeões → grade → clique no terreno (paliçada: dois cliques; Portão alterna o trecho, requer muralha). <b>Treinar:</b> selecione o prédio → clique na unidade. <b>Era:</b> botão Era ↑ + escolha 1 landmark. <b>Parar:</b> limpa ordens dos selecionados.</p>
+      <p><b>Economia:</b> fontes esgotam (aldeão anda até elas; fazenda infinita); mercado + Rota (precisa de 2 mercados) rende ouro; monge cura e captura relíquias/sagrados. <b>Furtivo (roxo no minimapa):</b> esconde além de 2 tiles.</p>
+      <p><b>Combate:</b> tropa ociosa revida sozinha; arqueiros sobem em muralha de pedra (botão Montar, imunes a melee, desmontam ao mover).</p>
       <p><b>Vitória:</b> destrua tudo (aniquilação), derrube os landmarks, segure os 3 sagrados 10 min ou sustente a Maravilha 10 min.</p>
     </div>
     <p style="font-size:12px">Arte, áudio e nomes 100% originais. Mecânicas espelham o gênero.</p>

@@ -183,3 +183,14 @@ describe('combat — elevação (muralha)', () => {
     expect(inRange(ar, up)).toBe(true);
   });
 });
+
+describe('combat — resistência de cerco (SPEC §1.4)', () => {
+  it('aríete ignora 95% do dano; tropa comum recebe integral', () => {
+    const sp = make({ type: 'spearman', player: 0, x: 0, y: 0 });
+    const ram = make({ type: 'ram', player: 1, x: 0.5, y: 0, id: 2 });
+    sp.cdLeft = 0;
+    attackTick(sp, ram, 0);
+    // 7 de dano × 5% = 0.35.
+    expect(UNIT_COMBAT.ram.hp - ram.hp).toBeCloseTo(0.35, 6);
+  });
+});

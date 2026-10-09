@@ -817,16 +817,64 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         refreshGrid();
       });
       const ownWalls = [...game.walls.values()].some((w) => w.player === 0);
-      if (ownWalls) {
-        btn('gate', 'Portão', 'Alternar portão na muralha (clique nela)', true, () => {
-          gateMode = true;
-          placeMode = null;
-          routeMode = null;
-          choosingAge = false;
-          setHint('Portão: clique na sua muralha (Esc cancela)');
+      btn('gate', 'Portão', ownWalls ? 'Alternar portão na muralha (clique nela)' : 'Portão (requer muralha própria)', ownWalls, () => {
+        gateMode = true;
+        placeMode = null;
+        routeMode = null;
+        choosingAge = false;
+        setHint('Portão: clique na sua muralha (Esc cancela)');
+        refreshGrid();
+      });
+    }
+    // Parar: limpa ordens e filas dos selecionados (qualquer seleção).
+    if (selected.length > 0) {
+      btn('stop', 'Parar', 'Parar selecionados', true, () => {
+        game.clearOrders(selected);
+        refreshGrid();
+        refreshSelection();
+      });
+    }
+    const selVils = selUnits.filter((u) => u.type === 'villager');
+    if (selVils.length > 0) {
+      // Reparar: prédio próprio danificado mais próximo (raio 8 dos selecionados).
+      const damaged = [...game.buildings.values()].filter((b) => b.player === 0 && b.hp < b.maxHp);
+      if (damaged.length > 0) {
+        btn('repair', 'Reparar', 'Reparar prédio danificado próximo', true, () => {
+          for (const v of selVils) {
+            let best: number | null = null;
+            let bd = Infinity;
+            for (const b of damaged) {
+              const u = sim.state.units.find((x) => x.id === v.id)!;
+              const d = Math.hypot(b.x - u.x, b.y - u.y);
+              if (d <= 8 && d < bd) {
+                bd = d;
+                best = b.id;
+              }
+            }
+            if (best !== null) game.orderRepair(v.id, best);
+          }
+          sfx.order();
           refreshGrid();
+          refreshSelection();
         });
       }
+    }
+    // Montar: à distância sobem na muralha de pedra própria próxima.
+    const selRanged = selUnits.filter(
+      (u) => u.type === 'archer' || u.type === 'longbow' || u.type === 'crossbow' || u.type === 'arbaletrier'
+    );
+    const stoneWalls = [...game.walls.values()].filter((w) => w.player === 0 && w.kind === 'stone');
+    if (selRanged.length > 0 && stoneWalls.length > 0) {
+      btn('mount', 'Montar', 'Subir à distância na muralha de pedra', true, () => {
+        for (const r of selRanged) {
+          for (const w of stoneWalls) {
+            if (game.mountWall(r.id, w.id)) break;
+          }
+        }
+        sfx.order();
+        refreshGrid();
+        refreshSelection();
+      });
     }
     const selTraders = selUnits.filter((u) => u.type === 'trader');
     if (selTraders.length > 0) {
@@ -834,7 +882,7 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
         routeMode = { traderId: selTraders[0].id };
         placeMode = null;
         choosingAge = false;
-        setHint('Rota: clique o mercado de origem (Esc cancela)');
+        setHint('Rota: clique o mercado de origem (precisa de 2 mercados; Esc cancela)');
         refreshGrid();
       });
     }
@@ -1189,7 +1237,8 @@ export function boot(cfg: SkirmishConfig = DEFAULT_SKIRMISH): { sim: Sim; render
     }
     const kl = e.key.toLowerCase();
     if (kl === 'q' || kl === 'e') {
-      const next = rotate(cam, kl === 'q' ? 0.2 : -0.2);
+      // Passo de 90° (SPEC HUD §3/§5).
+      const next = rotate(cam, kl === 'q' ? Math.PI / 2 : -Math.PI / 2);
       cam.yaw = next.yaw;
       applyCamera();
       e.preventDefault();
