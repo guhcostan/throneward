@@ -157,4 +157,34 @@ describe('bot vs bot', () => {
     expect(b.winner).toEqual(a.winner);
     expect(b.hash).toBe(a.hash);
   });
+
+  it('dificuldades produzem comportamentos distintos', () => {
+    const runDiff = (seed: number, difficulty: 'easy' | 'medium' | 'hard'): string => {
+      const g = new Game(seed, 2);
+      const mk = (cx: number): WorldSites => ({
+        food: [{ kind: 'berry', x: cx + 2, y: 0 }],
+        wood: [{ kind: 'wood', x: cx - 2, y: 0 }],
+        gold: [{ kind: 'gold', x: cx + 3, y: 1 }],
+        stone: [{ kind: 'stone', x: cx - 3, y: 1 }],
+        dropoff: { x: cx, y: 0 }
+      });
+      const tc = g.orderBuild(0, 'towncenter', 0, 0);
+      const b = g.buildings.get(tc)!;
+      b.progress = 1;
+      b.built = true;
+      b.hp = b.maxHp;
+      for (let i = 0; i < 3; i++) g.sim.spawnUnit('villager', 0, i, 1);
+      const bot = new Bot(g, 0, difficulty, mk(0));
+      for (let i = 0; i < Math.round(300 / DT); i++) {
+        bot.update(DT);
+        g.tick(DT);
+      }
+      return g.hash();
+    };
+    const e = runDiff(61, 'easy');
+    const m = runDiff(61, 'medium');
+    const h = runDiff(61, 'hard');
+    // Intervalos de decisão distintos (8s/4s/2s) divergem as trajetórias.
+    expect(new Set([e, m, h]).size).toBeGreaterThan(1);
+  });
 });
