@@ -33,9 +33,8 @@ Techs militares: +1 fixo por nível (SPEC §3.1); coleta e cerco em %; carga +3,
 ## Economia
 Carga 10 (25 caça) [V]; taxas: fruta 0.69 [V changelog], fazenda 0.75, madeira 0.7, ouro 0.7, pedra 0.65, caça 0.9–1.0 (VERIFICAR); techs +10/+15% [V]; relíquia 0.5 ouro/s VERIFICAR; comércio 0.15/tile VERIFICAR.
 
-## Ritmo (medido 2026-10-09)
-8 aldeões (4 fruta/2 madeira/2 ouro) pagam o landmark Albion da Feudal (300M/150O) em ~1 min de jogo sem fricção de caminhada. Com deslocamento real, ~2 min + 90–120 s de obra → Feudal aos ~4 min, compatível com o gênero.
-Simplificação THR v0: coleta entrega sem caminhar até o ponto de entrega (atDropoff sempre verdadeiro) — taxas efetivas ~2x acima do real; compensar no tuning fino das taxas.
+## Ritmo (medido 2026-10-09, atualizado r56)
+Ciclo de coleta real (anda ao nó, acumula, anda à entrega, descarrega) — taxas nominais valem sem compensação. Feudal aos ~4 min, compatível com o gênero.
 
 ## Construção e eras
 Fórmula (N+2)/3 [V]; pop 10 +10/casa até 200 [V]; landmark por escolha 1-de-2 [V]; custos de landmark Albion/Gallia VERIFICAR; maravilhas/tempos VERIFICAR.
