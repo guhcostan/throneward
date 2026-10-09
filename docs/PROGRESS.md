@@ -255,3 +255,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 62+)
 - Críticas v11 aplicadas: botões Parar/Reparar/Montar, Portão com motivo, placeholder honesto, Q/E 90°, ajuda completa, muros destrutíveis, cerco SPEC (bônus/resistência/velocidade), ritmo medido (refuta 6–9min).
 - CI revalida pós-deploy.
+
+## Estado 2026-10-09 (Round 63)
+- Cancelar produção por clique (reembolso) + e2e; bombardeiro nas listas militares.
+- E2E 34/34, unit 322/322. Deploy prod; CI revalida.
