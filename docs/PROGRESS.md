@@ -219,3 +219,7 @@ spec-units.md atualizado pelo pesquisador (246l, fonte aoe4world/data, 19 VERIFI
 ## Estado 2026-10-09 (Round 46)
 - Furtividade com efeito: grade de visão + e2e stealth + tag v10 (defesas completas).
 - E2E 31/31, unit 313/313. Deploy prod; CI revalida.
+
+## Estado 2026-10-09 (Round 47)
+- Esgotamento: fontes com estoque, migração automática, fazendas infinitas, caça com valores THR v0.
+- 315 unit, CI triplo verde. Deploy prod.
